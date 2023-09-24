@@ -1,14 +1,14 @@
 import datetime
 import re
 import uuid
-from collections import OrderedDict
 from collections.abc import Iterable, MutableSequence, Sequence
 from itertools import pairwise
 from pathlib import Path
 
 from ebooklib import epub
 from markdown_it import MarkdownIt
-from PIL import Image
+
+from ebooklib_patch import SWEpubCoverHtml, write_epub
 
 md = MarkdownIt("commonmark", {"typographer": True})
 md.enable(["replacements", "smartquotes"])
@@ -28,84 +28,26 @@ magazine_subjects = [
 ]
 
 
-# Adapted from the ebooklib class so I could tweak it -- the existing class lower-cases all
-# xml attributes, which wrecks the viewBox attribute
-class EpubCoverHtml(epub.EpubHtml):
-    def __init__(
-        self, uid="cover", file_name="cover.xhtml", image_name="", title="Cover"
-    ):
-        super(EpubCoverHtml, self).__init__(uid=uid, file_name=file_name, title=title)
+def add_cover(
+    book: epub.EpubBook,
+    cover_path: Path,
+    title: str = "Cover",
+) -> None:
+    """Add cover to the ebook.
 
-        self.image_name = image_name
-        self.is_linear = False
-
-    def is_chapter(self):
-        return False
-
-    def set_content(self, cover_path):
-        self.content = self.get_cover_html_content(cover_path)
-
-    def get_content(self):
-        return self.content
-
-    def get_cover_html_content(self, cover_path: Path) -> bytes:
-        with Image.open(cover_path) as img:
-            cover_width, cover_height = img.size
-
-        return (
-            """<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en" xml:lang="en">
- <head>
-  <style>
-    body { margin: 0em; padding: 0em; }
-    img { max-width: 100%; max-height: 100%; }
-  </style>
- </head>
- <body>
-   <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-   height="100%" width="100%" viewBox="0 0 """
-            + f"{cover_width} {cover_height}"
-            + '''" preserveAspectRatio="xMidYMid meet" version="1.1">
-     <image href="'''
-            + self.image_name
-            + """" alt="Cover art"/></svg>
- </body>
-</html>"""
-        ).encode()
-
-    def __str__(self):
-        return "<EpubCoverHtml:%s:%s>" % (self.id, self.file_name)
-
-
-# Adapted from the ebooklib function so I can tweak it
-def set_cover(book, file_name: str, cover_path: Path, create_page=True, title="Cover"):
-    """
-    Set cover and create cover document if needed.
-
-    :Args:
-      - book: epub object to add the cover to
-      - file_name: file name of the cover page (in the epub file)
-      - cover_path: Path to the image file
-      - create_page: Should cover page be defined. Defined as bool value (optional). Default value is True.
-      - title: Title for the cover page (if defined).
+    :param book: Book to add cover to.
+    :param cover_path: Path to the cover image file.
+    :param title: Title to give the page containing the cover in the ebook.
     """
 
-    cover_path = Path(cover_path)
     content = cover_path.read_bytes()
 
-    c0 = epub.EpubCover(file_name=file_name)
-    c0.content = content
-    book.add_item(c0)
-
-    if create_page:
-        c1 = EpubCoverHtml(title=title, file_name="cover.xhtml", image_name=file_name)
-        c1.set_content(cover_path)
-        book.add_item(c1)
-
-    book.add_metadata(
-        None, "meta", "", OrderedDict([("name", "cover"), ("content", "cover-img")])
+    book.set_cover(cover_path.name, content, False)
+    c1 = SWEpubCoverHtml(
+        title=title, file_name="cover.xhtml", image_name=cover_path.name
     )
+    c1.set_content(cover_path)
+    book.add_item(c1)
 
 
 def get_titles_and_authors(
@@ -360,7 +302,7 @@ def build_ebook():
     )
     book.add_item(css)
 
-    set_cover(book, "cover.jpg", cover_path, title=f"Small Wonders Issue {issue_num}")
+    add_cover(book, cover_path, title=f"Small Wonders Issue {issue_num}")
 
     ebook_chs = []  # Keep track of what we're adding to the ebook
 
@@ -382,7 +324,7 @@ def build_ebook():
     book.spine = tuple(ebook_chs)
     book.toc = tuple(ebook_chs)
 
-    epub.write_epub(f"Small Wonders Magazine Issue {issue_num}.epub", book)
+    write_epub(f"Small Wonders Magazine Issue {issue_num}.epub", book)
 
 
 if __name__ == "__main__":
