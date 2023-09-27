@@ -124,6 +124,12 @@ def add_metadata(
     book.add_metadata("DC", "description", desc)
     for subject in magazine_subjects:
         book.add_metadata("DC", "subject", subject)
+    book.add_metadata(
+        None, "meta", "", {"name": "calibre:series", "content": "Small Wonders"}
+    )
+    book.add_metadata(
+        None, "meta", "", {"name": "calibre:series_index", "content": str(issue_num)}
+    )
 
 
 def create_front_matter(
