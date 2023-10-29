@@ -117,6 +117,7 @@ class SWEpubWriter(epub.EpubWriter):
         content_title.text = item.title or self.book.title
 
         def _create_toc_section(itm, items):
+            """SRG Creates a table of contents with links in paragraphs instead of ordered lists"""
             div = etree.SubElement(itm, "div", {"class": "toc"})
             for item in items:
                 p = etree.SubElement(div, "p")
@@ -136,6 +137,7 @@ class SWEpubWriter(epub.EpubWriter):
                     a.text = item.title
 
         def _create_section(itm, items):
+            """SRG Left in, but not used in this implementation"""
             ol = etree.SubElement(itm, "ol")
             for item in items:
                 if isinstance(item, tuple) or isinstance(item, list):

@@ -177,7 +177,7 @@ def generate_poem(path: Path) -> str:
         if in_content or not line.startswith("#"):
             in_content = True
             # Extra non-breaking space needed to force ereaders to honor blank lines
-            html += f'<div class="poem">{line}&nbsp;</div>\n'
+            html += f'<div class="poem">{md.renderInline(line)}&nbsp;</div>\n'
         elif line.startswith("##"):
             html += f"<h2>{line[2:]}</h2>\n\n"
         elif line.startswith("#"):
