@@ -32,22 +32,27 @@ def add_cover(
     book: epub.EpubBook,
     cover_path: Path,
     title: str = "Cover",
-) -> None:
-    """Add cover to the ebook.
+) -> SWEpubCoverHtml:
+    """Create and add cover to the ebook.
+
+    Adds both the cover image and an HTML page containing that cover.
 
     :param book: Book to add cover to.
     :param cover_path: Path to the cover image file.
     :param title: Title to give the page containing the cover in the ebook.
+    :return: Created cover page.
     """
 
     content = cover_path.read_bytes()
 
-    book.set_cover(cover_path.name, content, False)
+    book.set_cover(cover_path.name, content, create_page=False)
     c1 = SWEpubCoverHtml(
         title=title, file_name="cover.xhtml", image_name=cover_path.name
     )
     c1.set_content(cover_path)
     book.add_item(c1)
+
+    return c1
 
 
 def get_titles_and_authors(
@@ -308,13 +313,13 @@ def build_ebook():
     )
     book.add_item(css)
 
-    add_cover(book, cover_path, title=f"Small Wonders Issue {issue_num}")
+    cover = add_cover(book, cover_path, title="Cover")
 
     ebook_chs = []  # Keep track of what we're adding to the ebook
 
     # Add NCX and nav
     book.add_item(epub.EpubNcx())
-    nav = epub.EpubNav()
+    nav = epub.EpubNav(title="Table of Contents")
     ebook_chs.append(nav)
 
     create_front_matter(front_matter_paths, front_matter_titles, ebook_chs)
@@ -327,8 +332,10 @@ def build_ebook():
 
     add_images(book, author_image_paths, piece_paths)
 
-    book.spine = tuple(ebook_chs)
-    book.toc = tuple(ebook_chs)
+    full_contents = [cover] + ebook_chs
+
+    book.spine = tuple(full_contents)
+    book.toc = tuple(full_contents)
 
     write_epub(f"Small Wonders Magazine Issue {issue_num}.epub", book)
 

@@ -1,4 +1,5 @@
 import os
+from contextlib import suppress
 from pathlib import Path
 
 import ebooklib
@@ -28,7 +29,10 @@ class SWEpubCoverHtml(epub.EpubHtml):
         super(SWEpubCoverHtml, self).__init__(uid=uid, file_name=file_name, title=title)
 
         self.image_name = image_name
-        self.is_linear = False
+        # Changing is_linear so the cover shows up at the start of the
+        # ebook instead of at the end
+        # self.is_linear = False
+        self.is_linear = True
 
     def is_chapter(self):
         return False
@@ -279,7 +283,5 @@ def write_epub(name, book, options=None):
 
     epub.process()
 
-    try:
+    with suppress(IOError):
         epub.write()
-    except IOError:
-        pass
