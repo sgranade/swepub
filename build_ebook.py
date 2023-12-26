@@ -168,6 +168,7 @@ def generate_poem(path: Path) -> str:
     :param path: Path to the poem's markdown file.
     :return: HTML for the poem.
     """
+    # Since poems need specialized formatting, we handle them on a line-by-line basis
     html = ""
     lines = path.read_text(encoding="utf-8").splitlines()
     in_content = False
@@ -176,12 +177,23 @@ def generate_poem(path: Path) -> str:
             continue
         if in_content or not line.startswith("#"):
             in_content = True
+            classes = "poem"
+            if line.startswith("\t"):
+                cnt = len(re.match("\t+", line).group(0))
+                if cnt > 4:
+                    raise RuntimeError(f"Too many tabs {cnt} in line {line}")
+                classes += f" tab{cnt}"
+                line = line[cnt:]
             # Extra non-breaking space needed to force ereaders to honor blank lines
-            html += f'<div class="poem">{md.renderInline(line)}&nbsp;</div>\n'
-        elif line.startswith("##"):
-            html += f"<h2>{line[2:]}</h2>\n\n"
-        elif line.startswith("#"):
-            html += f"<h1>{line[1:]}</h1>\n\n"
+            html += f'<div class="{classes}">{md.renderInline(line)}&nbsp;</div>\n'
+        else:
+            m = re.match("#+", line)
+            if m is not None:
+                hashes = m.group(0)
+                cnt = len(hashes)
+                if cnt > 6:
+                    raise RuntimeError(f"Too many hash marks ({cnt})) in line {line}")
+                html += f"<h{cnt}>{md.renderInline(line[cnt:])}</h{cnt}>\n\n"
 
     return html
 
