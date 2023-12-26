@@ -6,55 +6,6 @@ import build_ebook as uut
 
 
 class TestGeneratePoem:
-    def test_wraps_lines_in_divs(self):
-        text = "first line\nsecond line\n"
-        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
-
-        result = uut.generate_poem(mock_path)
-
-        assert (
-            result
-            == '<div class="poem">first line&nbsp;</div>\n'
-            + '<div class="poem">second line&nbsp;</div>\n'
-        )
-
-    def test_parses_markdown_in_a_given_line(self):
-        text = "_first_ line\n**second** line\n"
-        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
-
-        result = uut.generate_poem(mock_path)
-
-        assert (
-            result
-            == '<div class="poem"><em>first</em> line&nbsp;</div>\n'
-            + '<div class="poem"><strong>second</strong> line&nbsp;</div>\n'
-        )
-
-    def test_renders_blank_lines_as_div_with_non_breaking_space(self):
-        text = "start line\n\nend line\n"
-        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
-
-        result = uut.generate_poem(mock_path)
-
-        assert (
-            result
-            == '<div class="poem">start line&nbsp;</div>\n'
-            + '<div class="poem">&nbsp;</div>\n'
-            + '<div class="poem">end line&nbsp;</div>\n'
-        )
-
-    def test_skips_leading_blank_lines(self):
-        text = "\n\n\nstart line\nend line\n"
-        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
-
-        result = uut.generate_poem(mock_path)
-
-        assert (
-            result
-            == '<div class="poem">start line&nbsp;</div>\n'
-            + '<div class="poem">end line&nbsp;</div>\n'
-        )
-
     def test_converts_two_hashes_to_heading_2(self):
         text = "##Title _Italics_"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
@@ -80,6 +31,70 @@ class TestGeneratePoem:
 
         # Test passes if exception is raised
 
+    def test_wraps_lines_in_divs(self):
+        text = "first line\nsecond line\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.generate_poem(mock_path)
+
+        assert (
+            result
+            == '<div class="poem">first line</div>\n'
+            + '<div class="poem">second line</div>\n'
+        )
+
+    def test_honors_horizontal_rules(self):
+        text = "first line\n\n---\n\nsecond line\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.generate_poem(mock_path)
+
+        assert (
+            result
+            == '<div class="poem">first line</div>\n'
+            + '<div class="poem">&nbsp;</div>\n'
+            + "<hr />\n"
+            + '<div class="poem">&nbsp;</div>\n'
+            + '<div class="poem">second line</div>\n'
+        )
+
+    def test_parses_markdown_in_a_given_line(self):
+        text = "_first_ line\n**second** line\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.generate_poem(mock_path)
+
+        assert (
+            result
+            == '<div class="poem"><em>first</em> line</div>\n'
+            + '<div class="poem"><strong>second</strong> line</div>\n'
+        )
+
+    def test_renders_blank_lines_as_div_with_non_breaking_space(self):
+        text = "start line\n\nend line\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.generate_poem(mock_path)
+
+        assert (
+            result
+            == '<div class="poem">start line</div>\n'
+            + '<div class="poem">&nbsp;</div>\n'
+            + '<div class="poem">end line</div>\n'
+        )
+
+    def test_skips_leading_blank_lines(self):
+        text = "\n\n\nstart line\nend line\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.generate_poem(mock_path)
+
+        assert (
+            result
+            == '<div class="poem">start line</div>\n'
+            + '<div class="poem">end line</div>\n'
+        )
+
     def test_adds_indent_class_on_tabs(self):
         text = "\tIndent one\n\t\tIndent two"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
@@ -88,8 +103,8 @@ class TestGeneratePoem:
 
         assert (
             result
-            == '<div class="poem tab1">Indent one&nbsp;</div>\n'
-            + '<div class="poem tab2">Indent two&nbsp;</div>\n'
+            == '<div class="poem tab1">Indent one</div>\n'
+            + '<div class="poem tab2">Indent two</div>\n'
         )
 
     def test_raises_error_on_five_tabs(self):

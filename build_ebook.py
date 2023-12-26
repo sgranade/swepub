@@ -162,6 +162,28 @@ def create_front_matter(
         ebook_chs.append(ch)
 
 
+def _poem_line_to_html(line: str) -> str:
+    """Wrap a poem's line in HTML.
+
+    :param line: Line from the poem.
+    :return: HTML-ized poem line
+    """
+    classes = "poem"
+    if not line.strip():
+        # Non-breaking space needed to force ereaders to honor blank lines
+        md_line = "&nbsp;"
+    else:
+        if line.startswith("\t"):
+            cnt = len(re.match("\t+", line).group(0))
+            if cnt > 4:
+                raise RuntimeError(f"Too many tabs {cnt} in line {line}")
+            classes += f" tab{cnt}"
+            line = line[cnt:]
+        md_line = md.renderInline(line)
+
+    return f'<div class="{classes}">{md_line}</div>\n'
+
+
 def generate_poem(path: Path) -> str:
     """Generate the HTML for a poem.
 
@@ -173,27 +195,26 @@ def generate_poem(path: Path) -> str:
     lines = path.read_text(encoding="utf-8").splitlines()
     in_content = False
     for line in lines:
-        if not in_content and not line.strip():
-            continue
-        if in_content or not line.startswith("#"):
-            in_content = True
-            classes = "poem"
-            if line.startswith("\t"):
-                cnt = len(re.match("\t+", line).group(0))
-                if cnt > 4:
-                    raise RuntimeError(f"Too many tabs {cnt} in line {line}")
-                classes += f" tab{cnt}"
-                line = line[cnt:]
-            # Extra non-breaking space needed to force ereaders to honor blank lines
-            html += f'<div class="{classes}">{md.renderInline(line)}&nbsp;</div>\n'
-        else:
+        if not in_content:
+            if not line.strip():
+                continue
             m = re.match("#+", line)
-            if m is not None:
+            if m is None:
+                in_content = True
+            else:
                 hashes = m.group(0)
                 cnt = len(hashes)
                 if cnt > 6:
                     raise RuntimeError(f"Too many hash marks ({cnt})) in line {line}")
                 html += f"<h{cnt}>{md.renderInline(line[cnt:])}</h{cnt}>\n\n"
+                continue
+
+        # If we have a horizontal rule, honor that. Otherwise, parse the line separately
+        md_line = md.render(line)
+        if md_line.startswith("<hr />"):
+            html += md_line
+        else:
+            html += _poem_line_to_html(line)
 
     return html
 
