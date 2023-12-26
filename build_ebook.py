@@ -186,6 +186,21 @@ def generate_poem(path: Path) -> str:
     return html
 
 
+def generate_story(path: Path) -> str:
+    """Generate the HTML for a story.
+
+    :param path: Path to the story's markdown file.
+    :return: HTML for the story.
+    """
+    raw_html = md.render(path.read_text(encoding="utf-8"))
+    # Change <hr><p> into <hr><p class="noindent"> the funky regex way
+    # since lxml's HTML parser requires fragments have a single parent
+    # (i.e. lxml wants to wrap the output of md.render() in a single div tag)
+    raw_html = re.sub("<hr( /)?>\n*<p>", '<p class="noindent">', raw_html)
+
+    return raw_html
+
+
 def create_content(
     piece_paths: Sequence[Path],
     bio_paths: Sequence[Path],
@@ -212,7 +227,7 @@ def create_content(
         if "poem" in str(piece_path):
             content += generate_poem(piece_path)
         else:
-            content += md.render(piece_path.read_text(encoding="utf-8"))
+            content += generate_story(piece_path)
 
         if "reprint" not in str(piece_path):
             # Add the end div and copyright statement
