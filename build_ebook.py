@@ -234,6 +234,14 @@ def generate_story(path: Path) -> str:
     return raw_html
 
 
+def _piece_path_to_author_img_filename(path: Path) -> str:
+    """Get the filename of the author image for the path to a piece."""
+    m = re.search("(\d+)", path.stem)
+    if not m:
+        raise RuntimeError(f"Expected the piece path {path} to start with a number")
+    return f"{m.group(0)}-author.jpg"
+
+
 def create_content(
     piece_paths: Sequence[Path],
     bio_paths: Sequence[Path],
@@ -281,7 +289,7 @@ def create_content(
         # Add author bio and link to headshot
         content += (
             f'<p class="author-pic"><img class="author" '
-            + f'src="{piece_path.name}" alt="{author}"/></p>\n\n'
+            + f'src="{_piece_path_to_author_img_filename(piece_path)}" alt="{author}"/></p>\n\n'
         )
         content += md.render(bio_path.read_text(encoding="utf-8"))
 
@@ -293,19 +301,22 @@ def create_content(
 
 
 def add_images(
-    book: epub.EpubBook, image_paths: Sequence[Path], piece_paths: Sequence[Path]
+    book: epub.EpubBook,
+    images_path: Path,
+    piece_paths: Sequence[Path],
 ) -> None:
     """Add image files to the ebook.
 
     :param book: Book to add metadata to.
-    :param image_paths: Paths to the image files.
+    :param images_path: Path to where the image files live.
     :param piece_paths: Paths to the magazine pieces.
     """
-    for image_path, piece_path in zip(image_paths, piece_paths):
+    for piece_path in piece_paths:
+        image_path = images_path / _piece_path_to_author_img_filename(piece_path)
         book.add_item(
             epub.EpubImage(
                 uid=image_path.stem,
-                file_name=piece_path.name,
+                file_name=image_path.name,
                 media_type="image/jpeg",
                 content=image_path.read_bytes(),
             )
@@ -333,9 +344,6 @@ def build_ebook():
     front_matter_paths = [content_path / fn for fn in front_matter]
     piece_paths = [content_path / fn for fn in pieces]
     author_bio_paths = [content_path / fn for fn in author_bios]
-    author_image_paths = [
-        images_path / f"{path.stem[0]}-author.jpg" for path in piece_paths
-    ]
     cover_path = images_path / "cover.jpg"
     editors_path = content_path / "editors.txt"
     description_path = content_path / "description.html"
@@ -378,7 +386,7 @@ def build_ebook():
         ch.add_item(css)
         book.add_item(ch)
 
-    add_images(book, author_image_paths, piece_paths)
+    add_images(book, images_path, piece_paths)
 
     full_contents = [cover] + ebook_chs
 
