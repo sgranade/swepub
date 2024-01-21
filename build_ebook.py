@@ -226,7 +226,7 @@ def generate_story(path: Path) -> str:
     :return: HTML for the story.
     """
     raw_html = md.render(path.read_text(encoding="utf-8"))
-    # Change <hr><p> into <hr><p class="noindent"> the funky regex way
+    # Change <hr><p> into <p class="noindent"> the funky regex way
     # since lxml's HTML parser requires fragments have a single parent
     # (i.e. lxml wants to wrap the output of md.render() in a single div tag)
     raw_html = re.sub("<hr( /)?>\n*<p>", '<p class="noindent">', raw_html)
@@ -281,7 +281,7 @@ def create_content(
             else:
                 content = (
                     content[:ndx]
-                    + '</div>\n<div class="endmatter">\n'
+                    + '</div>\n\n<div class="endmatter">\n'
                     + content[ndx:]
                     + "</div>\n\n"
                 )

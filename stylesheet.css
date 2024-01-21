@@ -8,10 +8,10 @@ p.noindent {text-indent: 0em; margin-top: 1em;}
 div.poem {
 	text-indent: -1em; padding-left: 1em;
 }
-.tab1 { margin-left: 5%; }
-.tab2 { margin-left: 9%; }
-.tab3 { margin-left: 12%; }
-.tab4 { margin-left: 15%; }
+.tab1 { margin-left: 2em; }
+.tab2 { margin-left: 4em; }
+.tab3 { margin-left: 6em; }
+.tab4 { margin-left: 8em; }
 .frontmatter p {text-indent: 0em; margin-top: 1em;}
 .endmatter {margin-top: 1em; margin-bottom: 1em;}
 .endmatter p {font-size: 0.8em; margin: 0;}
