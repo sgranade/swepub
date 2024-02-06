@@ -1,14 +1,14 @@
 import datetime
 import re
 import uuid
-from collections.abc import Iterable, MutableSequence, Sequence
-from itertools import pairwise
+from collections.abc import MutableSequence, Sequence
 from pathlib import Path
 
 from ebooklib import epub
 from markdown_it import MarkdownIt
 
 from ebooklib_patch import SWEpubCoverHtml, write_epub
+from issue_info import get_issue_info
 
 md = MarkdownIt("commonmark", {"typographer": True})
 md.enable(["replacements", "smartquotes"])
@@ -53,53 +53,6 @@ def add_cover(
     book.add_item(c1)
 
     return c1
-
-
-def get_titles_and_authors(
-    piece_paths: Iterable[Path],
-) -> Sequence[Sequence[str], Sequence[str]]:
-    """Get the titles and authors from the files containing the pieces."""
-    titles = []
-    authors = []
-    errs = []
-    for fp in piece_paths:
-        content = md.parse(fp.read_text(encoding="utf-8"))
-        title = None
-        author = None
-        for cur_token, next_token in pairwise(content):
-            if cur_token.markup == "#" and title is None:
-                title = next_token.content
-            elif cur_token.markup == "##" and author is None:
-                author = re.sub(r"[Bb]y +", "", next_token.content)
-        file_errs = []
-        if title is None:
-            file_errs.append("No title found. Are you missing a # Markdown heading?")
-        if author is None:
-            file_errs.append("No author found. Are you missing a ## Markdown heading?")
-        if file_errs:
-            err_desc = " ".join(file_errs)
-            errs.append(f"{fp}: {err_desc}")
-        else:
-            titles.append(title)
-            authors.append(author)
-
-    if errs:
-        raise RuntimeError("Issues finding titles/authors.\n  " + "\n  ".join(errs))
-
-    return titles, authors
-
-
-def get_editors(editors_path: Path) -> Sequence[str]:
-    """Get the editors from the file containing the list of editors."""
-    return editors_path.read_text().splitlines()
-
-
-def get_issue_num(about_path: Path) -> int:
-    """Get the current issue number."""
-    m = re.search("Issue +(\d+)", about_path.read_text())
-    if m is None:
-        raise RuntimeError(f"Couldn't find issue number in {about_path}")
-    return int(m.group(1))
 
 
 def add_metadata(
@@ -327,7 +280,6 @@ def build_ebook():
     """Build Small Wonders ebook."""
     root_path = Path(__file__).parent
     content_path = root_path / "content"
-    images_path = root_path / "images"
 
     front_matter = ["0a-about.md", "0b-cover-artist.md", "0c-keyhole.md"]
     front_matter_titles = [
@@ -335,29 +287,16 @@ def build_ebook():
         "About the Cover Artist",
         "Thru the Keyhole",
     ]
-
-    # Generate filenames for all pieces
-    content_types = ("story", "poem", "reprint")
-    pieces = [f"{idx+1}a-{content_types[idx % 3]}.md" for idx in range(0, 9)]
-    author_bios = [f"{idx+1}b-author.md" for idx in range(0, 9)]
-
     front_matter_paths = [content_path / fn for fn in front_matter]
-    piece_paths = [content_path / fn for fn in pieces]
-    author_bio_paths = [content_path / fn for fn in author_bios]
-    cover_path = images_path / "cover.jpg"
-    editors_path = content_path / "editors.txt"
-    description_path = content_path / "description.html"
 
     stylesheet_path = root_path / "stylesheet.css"
 
-    titles, authors = get_titles_and_authors(piece_paths)
-    editors = get_editors(editors_path)
-    issue_num = get_issue_num(front_matter_paths[0])
+    info = get_issue_info(content_path)
 
     book = epub.EpubBook()
 
     add_metadata(
-        book, issue_num, editors, authors, description_path.read_text(encoding="utf-8")
+        book, info.issue_num, info.editors, info.author_names, info.description
     )
 
     # Set stylesheet
@@ -369,7 +308,7 @@ def build_ebook():
     )
     book.add_item(css)
 
-    cover = add_cover(book, cover_path, title="Cover")
+    cover = add_cover(book, info.cover_path, title="Cover")
 
     ebook_chs = []  # Keep track of what we're adding to the ebook
 
@@ -379,21 +318,23 @@ def build_ebook():
     ebook_chs.append(nav)
 
     create_front_matter(front_matter_paths, front_matter_titles, ebook_chs)
-    create_content(piece_paths, author_bio_paths, titles, authors, ebook_chs)
+    create_content(
+        info.piece_paths, info.bio_paths, info.titles, info.author_names, ebook_chs
+    )
 
     # Add CSS to each ebook chapter and add the chapter to the book
     for ch in ebook_chs:
         ch.add_item(css)
         book.add_item(ch)
 
-    add_images(book, images_path, piece_paths)
+    add_images(book, content_path, info.piece_paths)
 
     full_contents = [cover] + ebook_chs
 
     book.spine = tuple(full_contents)
     book.toc = tuple(full_contents)
 
-    write_epub(f"Small Wonders Magazine Issue {issue_num}.epub", book)
+    write_epub(f"Small Wonders Magazine Issue {info.issue_num}.epub", book)
 
 
 if __name__ == "__main__":
