@@ -156,3 +156,4 @@ cython_debug/
 content/
 images/
 *.epub
+issue_config.toml
