@@ -103,7 +103,7 @@ def get_issue_info(content_path: Path) -> IssueInfo:
     content_types = ("story", "poem", "reprint")
     piece_filenames = [f"{idx+1}a-{content_types[idx % 3]}.md" for idx in range(0, 9)]
 
-    issue_num = get_issue_num(content_path / "01-about.md")
+    issue_num = get_issue_num(content_path / "0a-about.md")
     cover_path = content_path / "cover.jpg"
     description = (content_path / "description.html").read_text(encoding="utf-8")
     editors = get_editors(content_path / "editors.txt")
