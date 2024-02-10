@@ -364,6 +364,99 @@ def issue_release_time(year_month: date | None = None) -> datetime:
     return dt
 
 
+def get_existing_wp_object_by_slug(
+    obj_name: str, endpoint: str, slug: str
+) -> int | None:
+    """See if a WP object exists and, if so, get its ID.
+
+    :param obj_name: Descriptive name of the object, like "cover".
+    :param endpoint: WP REST endpoint to query.
+    :param slug: Slug to search for.
+    :return: ID if found, or None if not.
+    """
+    obj_id = None
+    params = {"slug": slug}
+    # Non-media endpoints may be published or future-scheduled
+    if endpoint != "media":
+        params["status"] = "publish,future"
+    resp = wp_request(
+        REST.GET,
+        endpoint,
+        f"checking for an existing {obj_name}",
+        params=params,
+    )
+    json = resp.json()
+    if json:
+        if len(json) > 1:
+            raise RuntimeError(
+                f"When looking for an existing {obj_name}, we found multiple ones "
+                f"with the slug {slug}: "
+                ", ".join(
+                    [f"{obj['title']['rendered']} (id {obj['id']})" for obj in json]
+                )
+            )
+        else:
+            obj_id = json[0]["id"]
+            click.echo(
+                f"{obj_name.capitalize()} has already been created (id {obj_id}); skipping."
+            )
+
+    return obj_id
+
+
+def upload_image(
+    img: Path,
+    filename: str | None = None,
+    title: str | None = None,
+    alt_text: str | None = None,
+    slug: str | None = None,
+) -> int:
+    """Upload an image to the WP site.
+
+    :param img: Path to the image file in jpeg format.
+    :param filename: Filename to give the image on the WP site, defaults to None
+    :param title: Title to give the image on the WP site, defaults to None
+    :param alt_text: Image alt text, defaults to None
+    :param slug: WP slug to the image, defaults to None
+    :return: ID of the uploaded image.
+    """
+    if filename is None:
+        filename = img.name
+    img_bytes = img.read_bytes()
+
+    headers = {
+        "Content-Type": "image/jpeg",
+        "Accept": "application/json",
+        "Content-Disposition": f"attachment; filename={filename}",
+    }
+    resp = wp_request(
+        REST.POST,
+        "media",
+        "uploading an image",
+        data=img_bytes,
+        headers=headers,
+    )
+
+    img_id = int(resp.json()["id"])
+
+    if title or alt_text or slug:
+        post_info = {}
+        if title:
+            post_info["title"] = title
+        if alt_text:
+            post_info["alt_text"] = alt_text
+        if slug:
+            post_info["slug"] = slug
+        resp = wp_request(
+            REST.POST,
+            f"media/{img_id}",
+            "updating the image metadata",
+            json=post_info,
+        )
+
+    return img_id
+
+
 def move_image_to_rml_folder(id: int, folder: str) -> None:
     """Move an image on the WP site to a Real Media Library folder.
 
@@ -388,70 +481,72 @@ def move_image_to_rml_folder(id: int, folder: str) -> None:
         check_response(r)
 
 
-def create_cover(info: IssueInfo) -> None:
+def create_cover(info: IssueInfo) -> int:
     """Create the issue's cover image on the WordPress site.
 
     :param info: Information about the issue.
+    :return: The WP ID of the cover image.
     """
     global rml_folders
+
     title = f"Issue {info.issue_num}"
     slug = f"sw_cover_issue_{info.issue_num}"
 
-    # See if the cover's media already exists
-    resp = wp_request(
-        REST.GET,
-        "media",
-        "checking for a cover's existence",
-        params={"slug": slug},
-    )
-    json = resp.json()
-    if json:
-        if len(json) > 1:
-            raise RuntimeError(
-                "When looking for an existing cover image, we found multiple ones "
-                f"with the slug {slug}: "
-                ", ".join(
-                    [
-                        f"{media['title']['rendered']} (id {media['id']})"
-                        for media in json
-                    ]
-                )
-            )
-        else:
-            click.echo(f"Cover image is already loaded (id {json[0]['id']}); skipping.")
-    else:
+    cover_id = get_existing_wp_object_by_slug("cover", "media", slug)
+    if cover_id is None:
         click.echo("Uploading cover image.")
-        cover_bytes = info.cover_path.read_bytes()
-        headers = {
-            "Content-Type": "image/jpeg",
-            "Accept": "application/json",
-            "Content-Disposition": f"attachment; filename=SW_Cover_Issue{info.issue_num:02}.jpg",
-        }
-        resp = wp_request(
-            REST.POST,
-            "media",
-            "uploading the cover image",
-            data=cover_bytes,
-            headers=headers,
-        )
-        cover_id = int(resp.json()["id"])
-        # Set the title and slug
-        resp = wp_request(
-            REST.POST,
-            f"media/{cover_id}",
-            "updating the cover image metadata",
-            json={"title": title, "slug": slug},
+        cover_id = upload_image(
+            info.cover_path,
+            f"SW_Cover_Issue{info.issue_num:02}.jpg",
+            title,
+            f"Issue {info.issue_num} cover",
+            slug,
         )
         move_image_to_rml_folder(cover_id, "covers")
 
+    return cover_id
 
-def create_issue(info: IssueInfo) -> None:
+
+def create_issue_info(info: IssueInfo, cover_id: int, post_date: datetime) -> int:
+    """Create the issue.
+
+    :param info: Information about the issue.
+    :param cover_id: The WP ID of the cover image.
+    :param post_date: The date that the issue will post.
+    :return: The WP ID of the issue.
+    """
+    title = f"Issue {info.issue_num}"
+    slug = str(info.issue_num)
+
+    issue_id = get_existing_wp_object_by_slug("issue", "issue", slug)
+    if issue_id is None:
+        click.echo("Creating issue.")
+        resp = wp_request(
+            REST.POST,
+            "issue",
+            "creating the issue",
+            json={
+                "title": title,
+                "slug": slug,
+                "featured_media": cover_id,
+                "status": "future",
+                "date_gmt": post_date.isoformat(),
+            },
+        )
+        issue_id = int(resp.json()["id"])
+
+    return issue_id
+
+
+def create_issue(info: IssueInfo, post_date: datetime) -> int:
     """Create (or update) the issue on the WordPress site.
 
     :param info: Information about the issue.
+    :post_date: Date when the issue will be posted.
+    :return: ID for the issue.
     """
-    create_cover(info)
-    # TODO create issue info
+    cover_id = create_cover(info)
+    return create_issue_info(info, cover_id, post_date)
 
 
 def setup() -> None:
@@ -485,10 +580,7 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
 
     setup()
 
-    create_issue(info)
-    # Create/update issue
-    # - upload/update cover
-    # - create/update issue
+    issue_id = create_issue(info, release_date)
 
     # For each piece:
     # - create/update author
