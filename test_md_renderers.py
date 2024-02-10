@@ -136,3 +136,67 @@ class TestRenderPoemForEbook:
             uut.render_poem_for_ebook(mock_path)
 
         # Test passes if exception is raised
+
+
+class TestRenderStoryForWebsite:
+    def test_wraps_paragraphs_with_gutenberg_block_tags(self):
+        text = "Para 1\n\nPara 2"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_story_for_website(mock_path)
+
+        assert result == (
+            "<!-- wp:paragraph -->\n"
+            "<p>Para 1</p>\n"
+            "<!-- /wp:paragraph -->\n\n"
+            "<!-- wp:paragraph -->\n"
+            "<p>Para 2</p>\n"
+            "<!-- /wp:paragraph -->\n\n"
+        )
+
+    def test_turns_horizontal_rules_into_scene_break(self):
+        text = "----\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_story_for_website(mock_path)
+
+        assert result == '<hr class="scene-break">\n\n'
+
+
+class TestRenderPoemForWebsite:
+    def test_translates_special_characters_to_unicode_but_only_in_the_poem_itself(self):
+        text = '# "The Quoted Title"\n\nTo <bracket> a "quote"'
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_poem_for_website(mock_path)
+
+        assert result == (
+            "<h1> &quot;The Quoted Title&quot;</h1>\n\n"
+            '<!-- wp:lazyblock/poem {"poem":"'
+            "To \\u003cbracket\\u003e a &quot;quote&quot;\\u003cbr\\u003e"
+            '"} /-->'
+        )
+
+    def test_adds_arrows_on_tabs(self):
+        text = "\tIndent one\n\t\tIndent two"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_poem_for_website(mock_path)
+
+        assert result == (
+            '<!-- wp:lazyblock/poem {"poem":"'
+            "-\\u003e Indent one\\u003cbr\\u003e"
+            "-\\u003e -\\u003e Indent two\\u003cbr\\u003e"
+            '"} /-->'
+        )
+
+
+class TestRenderAuthorBioForWebsite:
+    def test_bio_strips_para_tags(self):
+        md_text = "_This_ is the bio."
+        mock_path = Mock()
+        mock_path.read_text.return_value = md_text
+
+        result = uut.render_author_bio_for_website(mock_path)
+
+        assert result == "<em>This</em> is the bio."
