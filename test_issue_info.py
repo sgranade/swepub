@@ -5,6 +5,27 @@ import pytest
 import issue_info as uut
 
 
+class TestIssueInfo:
+    def test_piece_info_iterates_over_piece_path_title_bio_path_and_author_names(self):
+        info = uut.IssueInfo(
+            issue_num=1,
+            cover_path=Mock(name="cover_path"),
+            description="desc",
+            editors=["a", "b"],
+            piece_paths=["piece_path_1", "piece_path_2"],
+            titles=["one", "two"],
+            bio_paths=["bio_path_1", "bio_path_2"],
+            author_names=["ky", "se"],
+        )
+
+        result = info.piece_info()
+
+        assert list(result) == [
+            ("piece_path_1", "one", "bio_path_1", "ky"),
+            ("piece_path_2", "two", "bio_path_2", "se"),
+        ]
+
+
 class TestGetIssueNum:
     def test_returns_first_found_issue_number_preceded_by_the_word_Issue(self):
         contents = "issue 10\nIssue 17x3\nIssue22"

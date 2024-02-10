@@ -1,5 +1,5 @@
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Generator, Iterable, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
@@ -20,6 +20,19 @@ class IssueInfo:
     titles: list[str]
     bio_paths: list[Path]
     author_names: list[str]
+
+    def piece_info(self) -> Generator[Path, str, Path, str]:
+        """Get iterable over aggregated piece info.
+
+        :yield: Iterator that produces tuples of (piece path, title, bio_path, author_name).
+        """
+        return zip(
+            self.piece_paths,
+            self.titles,
+            self.bio_paths,
+            self.author_names,
+            strict=True,
+        )
 
 
 def get_issue_num(about_path: Path) -> int:
