@@ -13,16 +13,18 @@ class TestIssueInfo:
             description="desc",
             editors=["a", "b"],
             piece_paths=["piece_path_1", "piece_path_2"],
+            piece_post_days=[0, 2],
             titles=["one", "two"],
             bio_paths=["bio_path_1", "bio_path_2"],
             author_names=["ky", "se"],
+            avatar_paths=["av1", "av2"],
         )
 
         result = info.piece_info()
 
         assert list(result) == [
-            ("piece_path_1", "one", "bio_path_1", "ky"),
-            ("piece_path_2", "two", "bio_path_2", "se"),
+            ("piece_path_1", 0, "one", "bio_path_1", "ky", "av1"),
+            ("piece_path_2", 2, "two", "bio_path_2", "se", "av2"),
         ]
 
 

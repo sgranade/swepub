@@ -17,20 +17,24 @@ class IssueInfo:
     editors: list[str]
 
     piece_paths: list[Path]
+    piece_post_days: list[int]
     titles: list[str]
     bio_paths: list[Path]
     author_names: list[str]
+    avatar_paths: list[Path]
 
-    def piece_info(self) -> Generator[Path, str, Path, str]:
+    def piece_info(self) -> Generator[Path, int, str, Path, str, Path]:
         """Get iterable over aggregated piece info.
 
-        :yield: Iterator that produces tuples of (piece path, title, bio_path, author_name).
+        :yield: Iterator that produces tuples of (piece path, days after issue posts to post the piece, title, path to author bio, author name, path to author avatar).
         """
         return zip(
             self.piece_paths,
+            self.piece_post_days,
             self.titles,
             self.bio_paths,
             self.author_names,
+            self.avatar_paths,
             strict=True,
         )
 
@@ -122,7 +126,9 @@ def get_issue_info(content_path: Path) -> IssueInfo:
     editors = get_editors(content_path / "editors.txt")
 
     piece_paths = [content_path / fn for fn in piece_filenames]
-    bio_paths = [content_path / f"{idx+1}b-author.md" for idx in range(0, 9)]
+    piece_post_days = [0, 2, 4, 7, 9, 11, 14, 16, 18]
+    bio_paths = [content_path / f"{idx}b-author.md" for idx in range(1, 10)]
+    avatar_paths = [content_path / f"{idx}-author.jpg" for idx in range(1, 10)]
     titles, authors = get_titles_and_authors(piece_paths)
 
     return IssueInfo(
@@ -131,7 +137,9 @@ def get_issue_info(content_path: Path) -> IssueInfo:
         description=description,
         editors=editors,
         piece_paths=piece_paths,
+        piece_post_days=piece_post_days,
         titles=titles,
         bio_paths=bio_paths,
         author_names=authors,
+        avatar_paths=avatar_paths,
     )

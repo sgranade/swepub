@@ -2,15 +2,36 @@ from unittest.mock import Mock
 
 import pytest
 
-import build_ebook as uut
+import md_renderers as uut
 
 
-class TestGeneratePoem:
+class TestRenderStoryForEbook:
+    def test_renders_basic_markdown(self):
+        text = "Para 1 _with italics_.\n\nPara 2 **with bold**."
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_story_for_ebook(mock_path)
+
+        assert (
+            result
+            == "<p>Para 1 <em>with italics</em>.</p>\n<p>Para 2 <strong>with bold</strong>.</p>\n"
+        )
+
+    def test_changes_hr_to_noindent_para(self):
+        text = "Para 1.\n\n----\n\nPara 2."
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_story_for_ebook(mock_path)
+
+        assert result == '<p>Para 1.</p>\n<p class="noindent">Para 2.</p>\n'
+
+
+class TestRenderPoemForEbook:
     def test_converts_two_hashes_to_heading_2(self):
         text = "##Title _Italics_"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert result == "<h2>Title <em>Italics</em></h2>\n\n"
 
@@ -18,7 +39,7 @@ class TestGeneratePoem:
         text = "######Title _Italics_"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert result == "<h6>Title <em>Italics</em></h6>\n\n"
 
@@ -27,7 +48,7 @@ class TestGeneratePoem:
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
         with pytest.raises(RuntimeError):
-            uut.generate_poem(mock_path)
+            uut.render_poem_for_ebook(mock_path)
 
         # Test passes if exception is raised
 
@@ -35,7 +56,7 @@ class TestGeneratePoem:
         text = "first line\nsecond line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert (
             result
@@ -47,7 +68,7 @@ class TestGeneratePoem:
         text = "first line\n\n---\n\nsecond line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert (
             result
@@ -62,7 +83,7 @@ class TestGeneratePoem:
         text = "_first_ line\n**second** line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert (
             result
@@ -74,7 +95,7 @@ class TestGeneratePoem:
         text = "start line\n\nend line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert (
             result
@@ -87,7 +108,7 @@ class TestGeneratePoem:
         text = "\n\n\nstart line\nend line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert (
             result
@@ -99,7 +120,7 @@ class TestGeneratePoem:
         text = "\tIndent one\n\t\tIndent two"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.generate_poem(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
         assert (
             result
@@ -112,27 +133,6 @@ class TestGeneratePoem:
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
         with pytest.raises(RuntimeError):
-            uut.generate_poem(mock_path)
+            uut.render_poem_for_ebook(mock_path)
 
         # Test passes if exception is raised
-
-
-class TestGenerateStory:
-    def test_renders_basic_markdown(self):
-        text = "Para 1 _with italics_.\n\nPara 2 **with bold**."
-        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
-
-        result = uut.generate_story(mock_path)
-
-        assert (
-            result
-            == "<p>Para 1 <em>with italics</em>.</p>\n<p>Para 2 <strong>with bold</strong>.</p>\n"
-        )
-
-    def test_changes_hr_to_noindent_para(self):
-        text = "Para 1.\n\n----\n\nPara 2."
-        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
-
-        result = uut.generate_story(mock_path)
-
-        assert result == '<p>Para 1.</p>\n<p class="noindent">Para 2.</p>\n'
