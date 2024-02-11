@@ -54,6 +54,11 @@ def warn(s: str) -> None:
     click.secho(s, bold=True, fg="yellow")
 
 
+def info(s: str) -> None:
+    """Print info to the console."""
+    click.secho(s, dim=True)
+
+
 def response_jwt_error(r: requests.Response) -> str | None:
     """Get the JWT-returned error from a request, if available.
 
@@ -393,7 +398,7 @@ def get_existing_wp_object(
             )
         else:
             obj_id = json[0]["id"]
-            click.echo(
+            info(
                 f"{obj_name.capitalize()} has already been created (id {obj_id}); skipping."
             )
 
@@ -516,7 +521,7 @@ def create_issue_info(info: IssueInfo, cover_id: int, post_date: datetime) -> in
 
     issue_id = get_existing_wp_object("issue", "issue", slug=slug)
     if issue_id is None:
-        click.echo("Creating issue.")
+        click.echo("Creating issue object.")
         resp = wp_request(
             REST.POST,
             "issue",
@@ -555,7 +560,7 @@ def create_author_avatar(name: str, avatar_path: Path) -> int:
     """
     global rml_folders
 
-    avatar_id = get_existing_wp_object("avatar", "media", search=name)
+    avatar_id = get_existing_wp_object("author avatar", "media", search=name)
     if avatar_id is None:
         click.echo("Uploading author avatar.")
         cover_id = upload_image(
@@ -626,7 +631,7 @@ def create_piece(
             )
         data = {
             "title": title,
-            "author": author_id,
+            "ppma_author": [author_id],
             "slug": slug,
             "content": content,
             "status": "future",
@@ -678,7 +683,7 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
     release_date = issue_release_time(release_month)
 
     heading(
-        f"Setting up issue {info.issue_num} to release on {release_month.strftime('%c')}",
+        f"Setting up issue {info.issue_num} to release on {release_date.strftime('%c')}",
     )
 
     setup()
