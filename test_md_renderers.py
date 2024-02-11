@@ -143,7 +143,7 @@ class TestRenderStoryForWebsite:
         text = "Para 1\n\nPara 2"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_story_for_website(mock_path)
+        result, _, _ = uut.render_story_for_website(mock_path)
 
         assert result == (
             "<!-- wp:paragraph -->\n"
@@ -158,9 +158,27 @@ class TestRenderStoryForWebsite:
         text = "----\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_story_for_website(mock_path)
+        result, _, _ = uut.render_story_for_website(mock_path)
 
         assert result == '<hr class="scene-break">\n\n'
+
+    def test_returns_copyright_year_if_available(self):
+        text = "Copyright (c) 2017, N. E. Body\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result, _, year = uut.render_story_for_website(mock_path)
+
+        assert result == ""
+        assert year == "2017"
+
+    def test_returns_original_publication_if_available(self):
+        text = "First published in *Yep That's My Baby* magazine\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result, pub, _ = uut.render_story_for_website(mock_path)
+
+        assert result == ""
+        assert pub == "<em>Yep That's My Baby</em> magazine"
 
 
 class TestRenderPoemForWebsite:

@@ -10,8 +10,8 @@ _website_md = MarkdownIt("commonmark", {"typographer": True})
 _website_md.enable(["replacements"])
 
 
-def render_story_for_ebook(p: Path):
-    """Generate the HTML for a story.
+def render_story_for_ebook(p: Path) -> str:
+    """Generate the ebook HTML for a story.
 
     :param path: Path to the story's markdown file.
     :return: HTML for the story.
@@ -103,8 +103,8 @@ def _render_poem(
     return header_html, body_html
 
 
-def render_poem_for_ebook(p: Path):
-    """Generate the HTML for a poem.
+def render_poem_for_ebook(p: Path) -> str:
+    """Generate the ebook HTML for a poem.
 
     :param p: Path to the poem's markdown file.
     :return: HTML for the poem.
@@ -112,7 +112,30 @@ def render_poem_for_ebook(p: Path):
     return "".join(_render_poem(p, _ebook_md, _poem_line_to_ebook_html))
 
 
-def render_story_for_website(p: Path):
+def render_story_for_website(p: Path) -> tuple[str, str | None, str | None]:
+    """Generate the WP website HTML for a story.
+
+    :param p: Path to the story's markdown file.
+    :return: Tuple with the story's HTML, the original publication (if any),
+    and the original copyright year (if any).
+    """
+    text = p.read_text(encoding="utf-8")
+    copyright_year = None
+    orig_publication = None
+
+    # If the text has "First published in..." at the end, pull that out
+    # and extract the year from it
+    m = re.search("First published in (.*)\n*", text)
+    if m is not None:
+        text = text[: m.start()] + text[m.end() :]
+        orig_publication = _website_md.renderInline(m.group(1).strip())
+
+    # Do the same for the year
+    m = re.search("Copyright (\(c\)|©) (\d+).+\n*", text)
+    if m is not None:
+        text = text[: m.start()] + text[m.end() :]
+        copyright_year = m.group(2)
+
     # Add Gutenberg block wrappers to various tags
     with _website_md.reset_rules():
         _website_md.add_render_rule(
@@ -125,10 +148,16 @@ def render_story_for_website(p: Path):
         _website_md.add_render_rule(
             "hr", lambda *args, **kwargs: '<hr class="scene-break">\n\n'
         )
-        return _website_md.render(p.read_text(encoding="utf-8"))
+
+        return _website_md.render(text), orig_publication, copyright_year
 
 
-def render_poem_for_website(p: Path):
+def render_poem_for_website(p: Path) -> str:
+    """Generate the WP website HTML for a poem.
+
+    :param p: Path to the poem's markdown file.
+    :return: HTML for the poem.
+    """
     header, body = _render_poem(p, _website_md, _poem_line_to_website_html)
     return header + '<!-- wp:lazyblock/poem {"poem":"' + body + '"} /-->'
 
