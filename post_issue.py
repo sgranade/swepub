@@ -2,7 +2,6 @@ import tomllib
 from contextlib import suppress
 from datetime import date, datetime, timedelta
 from enum import StrEnum, auto
-from itertools import accumulate
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -11,10 +10,11 @@ import pytz
 import requests
 
 from issue_info import IssueInfo, get_issue_info
-from md_renderers import (
+from renderers import (
     render_author_bio_for_website,
     render_poem_for_website,
     render_story_for_website,
+    title_to_slug,
 )
 
 
@@ -598,16 +598,6 @@ def create_author(name: str, bio_path: Path, avatar_path: Path) -> int:
         )
 
     return author_id
-
-
-def title_to_slug(title: str) -> str:
-    """Given a title, return a (potentially truncated) slug."""
-    split_post_slug = title.lower().split(" ")
-    post_slug_lengths = list(accumulate((len(s) + 1 for s in split_post_slug)))
-    with suppress(StopIteration):
-        max_ndx = next(ndx for ndx, item in enumerate(post_slug_lengths) if item > 25)
-        split_post_slug = split_post_slug[:max_ndx]
-    return "-".join(split_post_slug).rstrip("-")
 
 
 def create_piece(

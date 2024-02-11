@@ -192,19 +192,3 @@ class TestGetExistingWpObject:
                 uut.get_existing_wp_object("obj", "endpoint", search="test")
 
         # Test passes if the exception is raised
-
-
-class TestTitleToSlug:
-    def test_lowercases_and_turns_spaces_into_dashes(self):
-        # No arrange
-
-        result = uut.title_to_slug("Title to Spaces")
-
-        assert result == "title-to-spaces"
-
-    def test_truncates_slug_to_first_break_before_25_characters(self):
-        # No arrange
-
-        result = uut.title_to_slug("123456789 123456789 12 456 89")
-
-        assert result == "123456789-123456789-12"

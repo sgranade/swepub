@@ -8,7 +8,7 @@ from markdown_it import MarkdownIt
 
 from ebooklib_patch import SWEpubCoverHtml, write_epub
 from issue_info import IssueInfo, get_issue_info
-from md_renderers import render_poem_for_ebook, render_story_for_ebook
+from renderers import render_poem_for_ebook, render_story_for_ebook
 
 md = MarkdownIt("commonmark", {"typographer": True})
 md.enable(["replacements", "smartquotes"])

@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-import md_renderers as uut
+import renderers as uut
 
 
 class TestRenderStoryForEbook:
@@ -160,7 +160,19 @@ class TestRenderStoryForWebsite:
 
         result, _, _ = uut.render_story_for_website(mock_path)
 
-        assert result == '<hr class="scene-break">\n\n'
+        assert result == '<hr class="scene-break" />\n\n'
+
+    def test_gets_rid_of_headers(self):
+        text = "# Title\n\n## By Meeeee!\n\nA paragraph\n"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result, _, _ = uut.render_story_for_website(mock_path)
+
+        assert result == (
+            "<!-- wp:paragraph -->\n"
+            "<p>A paragraph</p>\n"
+            "<!-- /wp:paragraph -->\n\n"
+        )
 
     def test_returns_copyright_year_if_available(self):
         text = "Copyright (c) 2017, N. E. Body\n"
@@ -189,7 +201,6 @@ class TestRenderPoemForWebsite:
         result = uut.render_poem_for_website(mock_path)
 
         assert result == (
-            "<h1> &quot;The Quoted Title&quot;</h1>\n\n"
             '<!-- wp:lazyblock/poem {"poem":"'
             "To \\u003cbracket\\u003e a &quot;quote&quot;\\u003cbr\\u003e"
             '"} /-->'
@@ -218,3 +229,33 @@ class TestRenderAuthorBioForWebsite:
         result = uut.render_author_bio_for_website(mock_path)
 
         assert result == "<em>This</em> is the bio."
+
+
+class TestTitleToSlug:
+    def test_lowercases_and_turns_spaces_into_dashes(self):
+        # No arrange
+
+        result = uut.title_to_slug("Title to Spaces")
+
+        assert result == "title-to-spaces"
+
+    def test_normalizes_accents(self):
+        # No arrange
+
+        result = uut.title_to_slug("Titlé")
+
+        assert result == "title"
+
+    def test_strips_quote_marks(self):
+        # No arrange
+
+        result = uut.title_to_slug('Wizard\'s "Rule"')
+
+        assert result == "wizards-rule"
+
+    def test_truncates_slug_to_first_break_before_40_characters(self):
+        # No arrange
+
+        result = uut.title_to_slug("123456789 123456789 12 456 89012 4567 9012")
+
+        assert result == "123456789-123456789-12-456-89012-4567"
