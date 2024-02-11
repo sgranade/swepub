@@ -2,6 +2,7 @@ import tomllib
 from contextlib import suppress
 from datetime import date, datetime, timedelta
 from enum import StrEnum, auto
+from itertools import accumulate
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -10,6 +11,11 @@ import pytz
 import requests
 
 from issue_info import IssueInfo, get_issue_info
+from md_renderers import (
+    render_author_bio_for_website,
+    render_poem_for_website,
+    render_story_for_website,
+)
 
 
 class REST(StrEnum):
@@ -33,9 +39,19 @@ urllib3.disable_warnings()
 # TODO END REMOVE AFTER TESTING
 
 
+def heading(s: str) -> None:
+    """Print a heading to the console."""
+    click.secho(s, bold=True, fg="green")
+
+
+def subheading(s: str) -> None:
+    """Print a subheading to the console."""
+    click.secho(s, fg="green")
+
+
 def warn(s: str) -> None:
     """Print a warning to the console."""
-    click.secho(s, bold=True)
+    click.secho(s, bold=True, fg="yellow")
 
 
 def response_jwt_error(r: requests.Response) -> str | None:
@@ -125,19 +141,6 @@ def get_token(username: str, password: str) -> str:
         )
     j = resp.json()
     return j["token"]
-
-
-def verify_token(token: str) -> None:
-    """Verify a JWT token.
-
-    :param token: JWT token value.
-    :raises HTTPError: If the token doesn't validate.
-    """
-    rest_endpoint = wp_rest_url("token/validate", NAMESPACES.JWT)
-    resp = requests.post(
-        rest_endpoint, headers={"Authorization": f"Bearer {token}"}, verify=VERIFY
-    )
-    check_response(resp, "validating a token")
 
 
 host_info: dict[str, str | None] = None
@@ -243,14 +246,13 @@ def setup_rml_folders() -> None:
         check_response(r, "getting information about Real Media Library folders")
 
 
-def make_token_headers(headers: dict | None = None) -> dict:
-    """Get the headers to authorize with a JSON web token.
+def get_wp_headers(headers: dict[str, str] | None = None) -> None:
+    """Get headers for communicating with WordPress, including our JWT.
 
     Requires current_token to be set up.
 
-    :param token: JWT.
-    :param headers: Previous headers to add the authorization header to.
-    :return: The updated headers.
+    :param headers: Headers to add WP headers to, defaults to None
+    :return: Full headers
     """
     global current_token
 
@@ -258,19 +260,7 @@ def make_token_headers(headers: dict | None = None) -> dict:
         headers = {}
 
     headers["Authorization"] = f"Bearer {current_token}"
-
     return headers
-
-
-def get_wp_headers(headers: dict[str, str] | None = None) -> None:
-    """Get headers for communicating with WordPress, including our JWT.
-
-    :param headers: Headers to add WP headers to, defaults to None
-    :return: Full headers
-    """
-    if headers is None:
-        headers = {}
-    return make_token_headers(headers)
 
 
 def wp_rest_url(endpoint: str, namespace: str = NAMESPACES.WP) -> str:
@@ -364,20 +354,26 @@ def issue_release_time(year_month: date | None = None) -> datetime:
     return dt
 
 
-def get_existing_wp_object_by_slug(
-    obj_name: str, endpoint: str, slug: str
+def get_existing_wp_object(
+    obj_name: str, endpoint: str, search: str | None = None, slug: str | None = None
 ) -> int | None:
     """See if a WP object exists and, if so, get its ID.
 
     :param obj_name: Descriptive name of the object, like "cover".
     :param endpoint: WP REST endpoint to query.
-    :param slug: Slug to search for.
+    :param search: String to search for, defaults to None.
+    :param slug: Slug to search for, defaults to None.
+    :raise RuntimeError: If more than one object is found.
     :return: ID if found, or None if not.
     """
     obj_id = None
-    params = {"slug": slug}
-    # Non-media endpoints may be published or future-scheduled
-    if endpoint != "media":
+    params = {}
+    if search:
+        params["search"] = search
+    if slug:
+        params["slug"] = slug
+    # Post-like endpoints may be published or future-scheduled
+    if endpoint in ["post", "piece", "issue"]:
         params["status"] = "publish,future"
     resp = wp_request(
         REST.GET,
@@ -390,7 +386,7 @@ def get_existing_wp_object_by_slug(
         if len(json) > 1:
             raise RuntimeError(
                 f"When looking for an existing {obj_name}, we found multiple ones "
-                f"with the slug {slug}: "
+                f"with the parameters {params}: "
                 ", ".join(
                     [f"{obj['title']['rendered']} (id {obj['id']})" for obj in json]
                 )
@@ -492,7 +488,7 @@ def create_cover(info: IssueInfo) -> int:
     title = f"Issue {info.issue_num}"
     slug = f"sw_cover_issue_{info.issue_num}"
 
-    cover_id = get_existing_wp_object_by_slug("cover", "media", slug)
+    cover_id = get_existing_wp_object("cover", "media", slug=slug)
     if cover_id is None:
         click.echo("Uploading cover image.")
         cover_id = upload_image(
@@ -508,7 +504,7 @@ def create_cover(info: IssueInfo) -> int:
 
 
 def create_issue_info(info: IssueInfo, cover_id: int, post_date: datetime) -> int:
-    """Create the issue.
+    """Create the WP issue object.
 
     :param info: Information about the issue.
     :param cover_id: The WP ID of the cover image.
@@ -518,7 +514,7 @@ def create_issue_info(info: IssueInfo, cover_id: int, post_date: datetime) -> in
     title = f"Issue {info.issue_num}"
     slug = str(info.issue_num)
 
-    issue_id = get_existing_wp_object_by_slug("issue", "issue", slug)
+    issue_id = get_existing_wp_object("issue", "issue", slug=slug)
     if issue_id is None:
         click.echo("Creating issue.")
         resp = wp_request(
@@ -539,14 +535,127 @@ def create_issue_info(info: IssueInfo, cover_id: int, post_date: datetime) -> in
 
 
 def create_issue(info: IssueInfo, post_date: datetime) -> int:
-    """Create (or update) the issue on the WordPress site.
+    """Create the issue on the WordPress site if it doesn't exist.
 
     :param info: Information about the issue.
     :post_date: Date when the issue will be posted.
     :return: ID for the issue.
     """
+    subheading(f"Creating issue {info.issue_num}")
     cover_id = create_cover(info)
     return create_issue_info(info, cover_id, post_date)
+
+
+def create_author_avatar(name: str, avatar_path: Path) -> int:
+    """Create the author's avatar on the WordPress site if it doesn't exist.
+
+    :param name: The author's name.
+    :param avatar_path: Path to the avatar image.
+    :return: The WP ID of the avatar image.
+    """
+    global rml_folders
+
+    avatar_id = get_existing_wp_object("avatar", "media", search=name)
+    if avatar_id is None:
+        click.echo("Uploading author avatar.")
+        cover_id = upload_image(
+            avatar_path,
+            filename=name.lower().replace(" ", "-") + ".jpg",
+            title=name,
+            alt_text=name,
+        )
+        move_image_to_rml_folder(cover_id, "headshots")
+
+    return avatar_id
+
+
+def create_author(name: str, bio_path: Path, avatar_path: Path) -> int:
+    """Create the WP author object if it doesn't exist.
+
+    :param name: Author's name.
+    :param bio_path: Path to the author's bio as a Markdown file.
+    :param avatar_path: Path to the author's avatar as a jpeg.
+    :return: Author ID.
+    """
+    subheading(f"Creating author {name}")
+    avatar_id = create_author_avatar(name, avatar_path)
+    author_id = get_existing_wp_object("author", "ppma_author", search=name)
+    if not author_id:
+        resp = wp_request(
+            REST.POST,
+            "ppma_author",
+            "creating the PublishPress author",
+            json={"name": name},
+        )
+        author_id = int(resp.json()["id"])
+        bio = render_author_bio_for_website(bio_path)
+        resp = wp_request(
+            REST.POST,
+            f"ppma_author_meta/{author_id}",
+            "updating author metadata",
+            json={"description": bio, "avatar": avatar_id},
+            rest_namespace="srgcustom/v1/",
+        )
+
+    return author_id
+
+
+def title_to_slug(title: str) -> str:
+    """Given a title, return a (potentially truncated) slug."""
+    split_post_slug = title.lower().split(" ")
+    post_slug_lengths = list(accumulate((len(s) + 1 for s in split_post_slug)))
+    with suppress(StopIteration):
+        max_ndx = next(ndx for ndx, item in enumerate(post_slug_lengths) if item > 25)
+        split_post_slug = split_post_slug[:max_ndx]
+    return "-".join(split_post_slug).rstrip("-")
+
+
+def create_piece(
+    piece_path: Path, post_date: datetime, title: str, author_id: int, issue_id: int
+) -> int:
+    """Create the piece on the WordPress site if it doesn't exist.
+
+    :param piece_path: Path to the markdown file with the piece.
+    :param post_date: When the piece should be posted to the site.
+    :param title: Piece title.
+    :param author_id: WordPress ID of the piece's author.
+    :param issue_id: WordPress ID of the issue the piece belongs to.
+    :return: WordPress ID for the piece.
+    """
+    subheading(f'Creating piece "{title}"')
+    slug = title_to_slug(title)
+    piece_id = get_existing_wp_object("piece", "piece", slug=slug)
+    if not piece_id:
+        orig_publication = None
+        copyright_year = None
+        if "poem" in str(piece_path):
+            content = render_poem_for_website(piece_path)
+        else:
+            content, orig_publication, copyright_year = render_story_for_website(
+                piece_path
+            )
+        data = {
+            "title": title,
+            "author": author_id,
+            "slug": slug,
+            "content": content,
+            "status": "future",
+            "date_gmt": post_date.isoformat(),
+            "sw_piece_parent_issue": issue_id,
+        }
+        if orig_publication:
+            data["sw_piece_previously_published_in"] = orig_publication
+        if copyright_year:
+            data["sw_piece_original_copyright_year"] = copyright_year
+        resp = wp_request(
+            REST.POST,
+            "piece",
+            "posting a piece",
+            data=data,
+        )
+        piece_id = int(resp.json()["id"])
+
+    return piece_id
 
 
 def setup() -> None:
@@ -578,13 +687,26 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
         release_month = release_month.date()
     release_date = issue_release_time(release_month)
 
+    heading(
+        f"Setting up issue {info.issue_num} to release on {release_month.strftime('%c')}",
+    )
+
     setup()
 
     issue_id = create_issue(info, release_date)
 
-    # For each piece:
-    # - create/update author
-    # - upload/update the story/poem
+    for (
+        piece_path,
+        post_day,
+        title,
+        bio_path,
+        author_name,
+        avatar_path,
+    ) in info.piece_info():
+        post_date = release_date + timedelta(days=post_day)
+        author_id = create_author(author_name, bio_path, avatar_path)
+        piece_id = create_piece(piece_path, post_date, title, author_id, issue_id)
+        break  # TODO REMOVE
 
 
 if __name__ == "__main__":

@@ -26,7 +26,16 @@ class IssueInfo:
     def piece_info(self) -> Generator[Path, int, str, Path, str, Path]:
         """Get iterable over aggregated piece info.
 
-        :yield: Iterator that produces tuples of (piece path, days after issue posts to post the piece, title, path to author bio, author name, path to author avatar).
+        Aggregated piece info:
+          - Path to the piece (Markdown)
+          - Number of days into the issue to post the piece
+          - Title
+          - Path to the author's bio (Markdown)
+          - Author name
+          - Path to the author's avatar (jpeg)
+
+        :yield: Iterator that produces tuples of (piece path, post day,
+        title, bio path, author name, avatar path).
         """
         return zip(
             self.piece_paths,
