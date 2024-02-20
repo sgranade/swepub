@@ -156,7 +156,12 @@ def render_story_for_website(p: Path) -> tuple[str, str | None, str | None]:
             lambda *args, **kwargs: "</p>\n<!-- /wp:paragraph -->\n\n",
         )
         _website_md.add_render_rule(
-            "hr", lambda *args, **kwargs: '<hr class="scene-break" />\n\n'
+            "hr",
+            lambda *args, **kwargs: (
+                "<!-- wp:separator -->\n"
+                '<hr class="wp-block-separator has-alpha-channel=opacity scene-break">\n'
+                "<!-- /wp:separator -->\n\n"
+            ),
         )
 
         return _website_md.render(text), orig_publication, copyright_year

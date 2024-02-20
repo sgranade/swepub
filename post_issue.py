@@ -49,6 +49,11 @@ def subheading(s: str) -> None:
     click.secho(s, fg="green")
 
 
+def subsubheading(s: str) -> None:
+    """Print a sub-subheading to the console."""
+    click.secho(s, fg="blue")
+
+
 def warn(s: str) -> None:
     """Print a warning to the console."""
     click.secho(s, bold=True, fg="yellow")
@@ -326,7 +331,7 @@ def wp_request(
         if r.status_code == 403:
             code = response_jwt_error(r)
             if code == "jwt_auth_invalid_token":
-                warn("JWT token has expired.")
+                warn("JWT token has expired. Getting a new one.")
                 setup_token()
                 h = get_wp_headers(headers)
                 continue
@@ -546,7 +551,7 @@ def create_issue(info: IssueInfo, post_date: datetime) -> int:
     :post_date: Date when the issue will be posted.
     :return: ID for the issue.
     """
-    subheading(f"Creating issue {info.issue_num}")
+    subsubheading(f"Creating issue {info.issue_num}")
     cover_id = create_cover(info)
     return create_issue_info(info, cover_id, post_date)
 
@@ -582,10 +587,11 @@ def create_author(name: str, bio_path: Path, avatar_path: Path) -> int:
     :param avatar_path: Path to the author's avatar as a jpeg.
     :return: Author ID.
     """
-    subheading(f"Creating author {name}")
+    subsubheading(f"Creating author {name}")
     avatar_id = create_author_avatar(name, avatar_path)
     author_id = get_existing_wp_object("author", "ppma_author", search=name)
     if not author_id:
+        click.echo("Creating author object")
         resp = wp_request(
             REST.POST,
             "ppma_author",
@@ -617,10 +623,11 @@ def create_piece(
     :param issue_id: WordPress ID of the issue the piece belongs to.
     :return: WordPress ID for the piece.
     """
-    subheading(f'Creating piece "{title}"')
+    subsubheading(f"Creating piece object")
     slug = title_to_slug(title)
     piece_id = get_existing_wp_object("piece", "piece", slug=slug)
     if not piece_id:
+        click.echo("Uploading piece")
         orig_publication = None
         copyright_year = None
         if "poem" in str(piece_path):
@@ -698,10 +705,10 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
         author_name,
         avatar_path,
     ) in info.piece_info():
+        subheading(f'\nCreating piece "{title}"')
         post_date = release_date + timedelta(days=post_day)
         author_id = create_author(author_name, bio_path, avatar_path)
         piece_id = create_piece(piece_path, post_date, title, author_id, issue_id)
-        break  # TODO REMOVE
 
 
 if __name__ == "__main__":

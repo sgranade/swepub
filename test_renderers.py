@@ -160,7 +160,11 @@ class TestRenderStoryForWebsite:
 
         result, _, _ = uut.render_story_for_website(mock_path)
 
-        assert result == '<hr class="scene-break" />\n\n'
+        assert result == (
+            "<!-- wp:separator -->\n"
+            '<hr class="wp-block-separator has-alpha-channel=opacity scene-break">\n'
+            "<!-- /wp:separator -->\n\n"
+        )
 
     def test_gets_rid_of_headers(self):
         text = "# Title\n\n## By Meeeee!\n\nA paragraph\n"
