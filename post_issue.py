@@ -697,6 +697,13 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
 
     issue_id = create_issue(info, release_date)
 
+    # There's some kind of race condition where uploading an author's
+    # avatar and then immediately creating the author object results
+    # in an author object w/o an avatar. To avoid that, upload all
+    # of the avatars ahead of time.
+    for author_name, avatar_path in zip(info.author_names, info.avatar_paths):
+        create_author_avatar(author_name, avatar_path)
+
     for (
         piece_path,
         post_day,
