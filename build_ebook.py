@@ -1,4 +1,5 @@
 import datetime
+import re
 import uuid
 from collections.abc import MutableSequence, Sequence
 from pathlib import Path
@@ -26,6 +27,14 @@ magazine_subjects = [
     "short stories",
     "poetry",
 ]
+
+
+def _avatar_path_to_author_img_src(path: Path) -> str:
+    """Get the ebook path to the author avatar given the path to the avatar."""
+    m = re.search("(\d+)", path.stem)
+    if not m:
+        raise RuntimeError(f"Expected the avatar path {path} to start with a number")
+    return f"{m.group(0)}-author.jpg"
 
 
 def add_cover(
@@ -151,9 +160,10 @@ def create_content(
                 )
 
         # Add author bio and link to headshot
+        avatar_src = _avatar_path_to_author_img_src(avatar_path)
         content += (
             f'<p class="author-pic"><img class="author" '
-            + f'src="{avatar_path}" alt="{author}"/></p>\n\n'
+            + f'src="{avatar_src}" alt="{author}"/></p>\n\n'
         )
         content += md.render(bio_path.read_text(encoding="utf-8"))
 
