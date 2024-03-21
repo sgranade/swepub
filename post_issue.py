@@ -359,7 +359,10 @@ def issue_release_time(year_month: date | None = None) -> datetime:
 
     # Now move to the first Monday and adjust the timezone
     tz_delta = pytz.timezone("America/Chicago").utcoffset(dt)
-    dt += timedelta(days=7 - dt.weekday()) - tz_delta
+    # If we're already on a Monday, don't skip forward
+    if dt.weekday() != 0:
+        dt += timedelta(days=7 - dt.weekday())
+    dt -= tz_delta
 
     return dt
 

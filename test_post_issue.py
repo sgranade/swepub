@@ -130,6 +130,20 @@ class TestIssueReleaseTime:
 
         assert result.isoformat() == "2000-01-03T17:00:00"
 
+    def test_returns_the_first_monday_of_the_next_month_even_if_its_the_first_day_of_the_month(
+        self,
+    ):
+        with patch.object(uut, "datetime") as mock_datetime:
+            mock_datetime.utcnow.return_value = datetime.datetime(
+                year=2024, month=3, day=20, hour=12, minute=13, second=14
+            )
+
+            result = uut.issue_release_time()
+
+        # Note that this specific day is during Daylight Saving Time so the time zone offset is
+        # different than the above
+        assert result.isoformat() == "2024-04-01T16:00:00"
+
 
 @patch.object(uut, "click")
 class TestGetExistingWpObject:
