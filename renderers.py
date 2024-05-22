@@ -40,7 +40,7 @@ def _poem_line_to_ebook_html(line: str) -> str:
     else:
         if line.startswith("\t"):
             cnt = len(re.match("\t+", line).group(0))
-            if cnt > 4:
+            if cnt > 5:
                 raise RuntimeError(f"Too many tabs {cnt} in line {line}")
             classes += f" tab{cnt}"
             line = line[cnt:]
