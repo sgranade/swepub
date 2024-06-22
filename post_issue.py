@@ -397,13 +397,35 @@ def get_existing_wp_object(
     json = resp.json()
     if json:
         if len(json) > 1:
-            raise RuntimeError(
+            if len(json) > 9:
+                raise NotImplementedError(
+                    f"Found {len(json)} existing {obj_name}s, but we're only set up to handle at most 9"
+                )
+            warn(
                 f"When looking for an existing {obj_name}, we found multiple ones "
-                f"with the parameters {params}: "
-                ", ".join(
-                    [f"{obj['title']['rendered']} (id {obj['id']})" for obj in json]
+                f"with the parameters {params}:\n"
+            )
+            click.echo(
+                "\n".join(
+                    [
+                        f"{ndx+1}: {obj['title']['rendered']} (id {obj['id']})"
+                        for ndx, obj in enumerate(json)
+                    ]
                 )
             )
+            c = None
+            while c is None:
+                try:
+                    click.echo(
+                        "Enter the correct author by number, or 0 if none of them are the right match."
+                    )
+                    c = int(click.getchar())
+                except ValueError:
+                    click.echo(f"{c} isn't a valid number")
+                    c = None
+
+            if c > 0:
+                obj_id = json[c - 1]["id"]
         else:
             obj_id = json[0]["id"]
             info(
@@ -504,19 +526,24 @@ def create_cover(info: IssueInfo) -> int:
     cover_id = get_existing_wp_object("cover", "media", slug=slug)
     if cover_id is None:
         click.echo("Uploading cover image.")
-        cover_id = upload_image(
-            info.cover_path,
-            f"SW_Cover_Issue{info.issue_num:02}.jpg",
-            title,
-            f"Issue {info.issue_num} cover",
-            slug,
-        )
-        move_image_to_rml_folder(cover_id, "covers")
+        try:
+            cover_id = upload_image(
+                info.cover_path,
+                f"SW_Cover_Issue{info.issue_num:02}.jpg",
+                title,
+                f"Issue {info.issue_num} cover",
+                slug,
+            )
+            move_image_to_rml_folder(cover_id, "covers")
+        except FileNotFoundError:
+            warn("Cover image not found.")
 
     return cover_id
 
 
-def create_issue_info(info: IssueInfo, cover_id: int, post_date: datetime) -> int:
+def create_issue_info(
+    info: IssueInfo, cover_id: int | None, post_date: datetime
+) -> int:
     """Create the WP issue object.
 
     :param info: Information about the issue.
@@ -530,17 +557,19 @@ def create_issue_info(info: IssueInfo, cover_id: int, post_date: datetime) -> in
     issue_id = get_existing_wp_object("issue", "issue", slug=slug)
     if issue_id is None:
         click.echo("Creating issue object.")
+        json = {
+            "title": title,
+            "slug": slug,
+            "status": "future",
+            "date_gmt": post_date.isoformat(),
+        }
+        if cover_id is not None:
+            json["featured_media"] = cover_id
         resp = wp_request(
             REST.POST,
             "issue",
             "creating the issue",
-            json={
-                "title": title,
-                "slug": slug,
-                "featured_media": cover_id,
-                "status": "future",
-                "date_gmt": post_date.isoformat(),
-            },
+            json=json,
         )
         issue_id = int(resp.json()["id"])
 
@@ -570,14 +599,14 @@ def create_author_avatar(name: str, avatar_path: Path) -> int:
 
     avatar_id = get_existing_wp_object("author avatar", "media", search=name)
     if avatar_id is None:
-        click.echo("Uploading author avatar.")
-        cover_id = upload_image(
+        click.echo(f"Uploading author avatar for {name}.")
+        avatar_id = upload_image(
             avatar_path,
             filename=name.lower().replace(" ", "-") + ".jpg",
             title=name,
             alt_text=name,
         )
-        move_image_to_rml_folder(cover_id, "headshots")
+        move_image_to_rml_folder(avatar_id, "headshots")
 
     return avatar_id
 
