@@ -708,7 +708,7 @@ def setup() -> None:
 @click.option(
     "--release-month",
     help="Date to release, in the format YYYY-MM",
-    type=click.DateTime("%Y-%m"),
+    type=click.DateTime(["%Y-%m"]),
 )
 def post_issue(content_path: Path | None, release_month: datetime | None) -> None:
     root_path = Path(__file__).parent
