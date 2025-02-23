@@ -141,7 +141,7 @@ def render_story_for_website(p: Path) -> tuple[str, str | None, str | None]:
         orig_publication = _website_md.renderInline(m.group(1).strip())
 
     # Do the same for the year
-    m = re.search("Copyright (\(c\)|©) (\d+).+\n*", text)
+    m = re.search(r"Copyright (\(c\)|©) (\d+).+\n*", text)
     if m is not None:
         text = text[: m.start()] + text[m.end() :]
         copyright_year = m.group(2)

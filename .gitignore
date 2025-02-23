@@ -157,3 +157,7 @@ content/
 images/
 *.epub
 issue_config.toml
+
+# pixi environments
+.pixi
+*.egg-info

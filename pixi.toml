@@ -1,0 +1,22 @@
+[project]
+authors = ["Stephen Granade <stephen@granades.com>"]
+channels = ["conda-forge"]
+name = "swepub"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.13.*"
+lxml = ">=5.3.1,<6"
+pillow = ">=11.1.0,<12"
+click = ">=8.1.8,<9"
+pytz = ">=2025.1,<2026"
+pytest = ">=8.3.4,<9"
+requests = ">=2.32.3,<3"
+jupyterlab = ">=4.3.5,<5"
+markdown-it-py = ">=3.0.0,<4"
+
+[pypi-dependencies]
+ebooklib = ">=0.18.0,<0.19"

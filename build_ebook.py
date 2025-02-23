@@ -31,7 +31,7 @@ magazine_subjects = [
 
 def _avatar_path_to_author_img_src(path: Path) -> str:
     """Get the ebook path to the author avatar given the path to the avatar."""
-    m = re.search("(\d+)", path.stem)
+    m = re.search(r"(\d+)", path.stem)
     if not m:
         raise RuntimeError(f"Expected the avatar path {path} to start with a number")
     return f"{m.group(0)}-author.jpg"

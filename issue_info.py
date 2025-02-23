@@ -57,7 +57,7 @@ def get_issue_num(about_path: Path) -> int:
     :raises RuntimeError: If the issue number isn't found.
     :return: The issue number.
     """
-    m = re.search("Issue +(\d+)", about_path.read_text())
+    m = re.search(r"Issue +(\d+)", about_path.read_text())
     if m is None:
         raise RuntimeError(f"Couldn't find issue number in {about_path}")
     return int(m.group(1))
