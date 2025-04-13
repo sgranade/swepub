@@ -128,8 +128,8 @@ class TestRenderPoemForEbook:
             + '<div class="poem tab2">Indent two</div>\n'
         )
 
-    def test_raises_error_on_five_tabs(self):
-        text = "\t\t\t\t\tNope"
+    def test_raises_error_on_six_tabs(self):
+        text = "\t\t\t\t\t\tNope"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
         with pytest.raises(RuntimeError):

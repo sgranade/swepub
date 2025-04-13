@@ -192,17 +192,14 @@ class TestGetExistingWpObject:
 
         assert result == 7
 
-    def test_raises_error_when_more_than_one_object_is_found(self, mock_click):
+    def test_queries_when_more_than_one_object_is_found(self, mock_click):
+        mock_click.getchar.return_value = "2"
         mock_request = Mock()
         mock_request.json.return_value = [
             {"id": 7, "title": {"rendered": "id-7"}},
             {"id": 8, "title": {"rendered": "id-8"}},
         ]
         with patch.object(uut, "wp_request", return_value=mock_request):
+            result = uut.get_existing_wp_object("obj", "endpoint", search="test")
 
-            with pytest.raises(
-                RuntimeError, match="an existing obj, we found multiple"
-            ):
-                uut.get_existing_wp_object("obj", "endpoint", search="test")
-
-        # Test passes if the exception is raised
+        assert result == 8
