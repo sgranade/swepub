@@ -39,7 +39,7 @@ def _poem_line_to_ebook_html(line: str) -> str:
         md_line = "&nbsp;"
     else:
         if line.startswith("\t"):
-            cnt = len(re.match("\t+", line).group(0))
+            cnt = len(re.match("\t+", line).group(0))  # type: ignore
             if cnt > 5:
                 raise RuntimeError(f"Too many tabs {cnt} in line {line}")
             classes += f" tab{cnt}"
@@ -49,8 +49,8 @@ def _poem_line_to_ebook_html(line: str) -> str:
     return f'<div class="{classes}">{md_line}</div>\n'
 
 
-# The poem HTML gets wrapped in a lazyblocks Gutenberg block, which requires that < and >
-# get turned into Unicode characters.
+# On the website the poem HTML gets wrapped in a lazyblocks Gutenberg block, which requires
+# that < and > get turned into Unicode characters.
 poem_trans = str.maketrans({"<": "\\u003c", ">": "\\u003e", '"': "\\u0022"})
 
 

@@ -153,13 +153,13 @@ def get_token(username: str, password: str) -> str:
     return j["token"]
 
 
-host_info: dict[str, str | None] = None
+host_info: dict[str, str | None] = {}
 """Information about the host."""
 
-current_token: str = None
+current_token: str = ""
 """JSON Web Token for authentication."""
 
-rml_folders: dict[str, int] = None
+rml_folders: dict[str, int] = {}
 """Real Media Library folders' names and their corresponding IDs."""
 
 
@@ -211,7 +211,7 @@ def setup_token() -> None:
     while True:
         try:
             current_token = get_token(
-                host_info["username"],
+                host_info["username"] or "",
                 host_info["password"] + twofactor,
             )
             break
@@ -229,7 +229,7 @@ def setup_token() -> None:
                     type=str,
                 )
             elif code == "wfls_twofactor_required":
-                host_info["use_2fa"] = True
+                host_info["use_2fa"] = True  # type: ignore
                 twofactor = click.prompt("Enter your 2FA code", type=str)
             else:
                 raise
@@ -256,7 +256,7 @@ def setup_rml_folders() -> None:
         check_response(r, "getting information about Real Media Library folders")
 
 
-def get_wp_headers(headers: dict[str, str] | None = None) -> None:
+def get_wp_headers(headers: dict[str, str] | None = None) -> dict[str, str]:
     """Get headers for communicating with WordPress, including our JWT.
 
     Requires current_token to be set up.
@@ -286,7 +286,9 @@ def wp_rest_url(endpoint: str, namespace: str = NAMESPACES.WP) -> str:
         namespace += "/"
     if endpoint[0] == "/":
         endpoint = endpoint[1:]
-    return urljoin(urljoin(urljoin(host_info["host"], "wp-json/"), namespace), endpoint)
+    return urljoin(
+        urljoin(urljoin(host_info["host"] or "", "wp-json/"), namespace), endpoint
+    )
 
 
 def wp_request(
@@ -499,20 +501,20 @@ def move_image_to_rml_folder(id: int, folder: str) -> None:
     cover_folder_id = rml_folders.get(folder, None)
     if cover_folder_id is None:
         warn(
-            f"No folder '{folder}' found in the site's Real Media Library. Available folders: {', '.join(rml_folders.keys)}"
+            f"No folder '{folder}' found in the site's Real Media Library. Available folders: {', '.join(rml_folders.keys)}"  # type: ignore
         )
     else:
         r = wp_request(
             REST.PUT,
             "attachments/bulk/move",
             f"moving an image to the Real Media Folder {folder} folder",
-            json={"ids": [id], "to": int(cover_folder_id), "isCopy": False},
+            json={"ids": [id], "to": int(cover_folder_id), "isCopy": False},  # type: ignore
             rest_namespace=NAMESPACES.RML,
         )
         check_response(r)
 
 
-def create_cover(info: IssueInfo) -> int:
+def create_cover(info: IssueInfo) -> int | None:
     """Create the issue's cover image on the WordPress site.
 
     :param info: Information about the issue.
@@ -564,7 +566,7 @@ def create_issue_info(
             "date_gmt": post_date.isoformat(),
         }
         if cover_id is not None:
-            json["featured_media"] = cover_id
+            json["featured_media"] = str(cover_id)
         resp = wp_request(
             REST.POST,
             "issue",
@@ -636,7 +638,7 @@ def create_author(name: str, bio_path: Path, avatar_path: Path) -> int:
             REST.POST,
             f"ppma_author_meta/{author_id}",
             "updating author metadata",
-            json={"description": bio, "avatar": avatar_id},
+            json={"description": bio, "avatar": str(avatar_id)},
             rest_namespace="srgcustom/v1/",
         )
 
@@ -717,9 +719,10 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
 
     info = get_issue_info(content_path)
 
+    release_month_date = None
     if release_month:
-        release_month = release_month.date()
-    release_date = issue_release_time(release_month)
+        release_month_date = release_month.date()
+    release_date = issue_release_time(release_month_date)
 
     heading(
         f"Setting up issue {info.issue_num} to release on {release_date.strftime('%c')}",

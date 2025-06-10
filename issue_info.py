@@ -1,5 +1,5 @@
 import re
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
@@ -23,7 +23,7 @@ class IssueInfo:
     author_names: list[str]
     avatar_paths: list[Path]
 
-    def piece_info(self) -> Generator[Path, int, str, Path, str, Path]:
+    def piece_info(self) -> Iterator[tuple[Path, int, str, Path, str, Path]]:
         """Get iterable over aggregated piece info.
 
         Aggregated piece info:
@@ -63,7 +63,7 @@ def get_issue_num(about_path: Path) -> int:
     return int(m.group(1))
 
 
-def get_editors(editors_path: Path) -> Sequence[str]:
+def get_editors(editors_path: Path) -> list[str]:
     """Get the editors from the file containing the list of editors.
 
     :param editors_path: Path to the text file with the editors' names, one on a line.
@@ -74,7 +74,7 @@ def get_editors(editors_path: Path) -> Sequence[str]:
 
 def get_titles_and_authors(
     piece_paths: Iterable[Path],
-) -> Sequence[Sequence[str], Sequence[str]]:
+) -> tuple[list[str], list[str]]:
     """Get the titles and authors from the files containing the pieces.
 
     The first level one heading ("# Heading") is assumed to be the title.
