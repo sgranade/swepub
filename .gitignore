@@ -155,6 +155,7 @@ cython_debug/
 ## Small Wonders magazine specific things
 content/
 images/
+best_of_year/
 *.epub
 issue_config.toml
 
