@@ -6,6 +6,9 @@ from pathlib import Path
 
 from markdown_it import MarkdownIt
 
+_md = MarkdownIt("commonmark", {"typographer": True})
+_md.enable(["replacements", "smartquotes"])
+
 
 @dataclass
 class IssueInfo:
@@ -72,6 +75,27 @@ def get_editors(editors_path: Path) -> list[str]:
     return [e.strip() for e in editors_path.read_text().splitlines()]
 
 
+def get_title_and_author(piece_path: Path) -> tuple[str | None, str | None, list[str]]:
+    content = _md.parse(piece_path.read_text(encoding="utf-8"))
+    title = None
+    author = None
+
+    for cur_token, next_token in pairwise(content):
+        if cur_token.markup == "#" and title is None:
+            title = next_token.content
+        elif cur_token.markup == "##" and author is None:
+            author = re.sub(r"[Bb]y +", "", next_token.content)
+        if title is not None and author is not None:
+            break
+    file_errs = []
+    if title is None:
+        file_errs.append("No title found. Are you missing a # Markdown heading?")
+    if author is None:
+        file_errs.append("No author found. Are you missing a ## Markdown heading?")
+
+    return title, author, file_errs
+
+
 def get_titles_and_authors(
     piece_paths: Iterable[Path],
 ) -> tuple[list[str], list[str]]:
@@ -85,14 +109,13 @@ def get_titles_and_authors(
     :raises RuntimeError: If any files lack a title or an author.
     :return: A tuple containing the list of titles and the list of authors.
     """
-    md = MarkdownIt("commonmark", {"typographer": True})
-    md.enable(["replacements", "smartquotes"])
+    global _md
 
     titles = []
     authors = []
     errs = []
     for fp in piece_paths:
-        content = md.parse(fp.read_text(encoding="utf-8"))
+        content = _md.parse(fp.read_text(encoding="utf-8"))
         title = None
         author = None
         for cur_token, next_token in pairwise(content):
