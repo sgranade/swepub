@@ -34,13 +34,13 @@ class SWEpubCoverHtml(epub.EpubHtml):
         # self.is_linear = False
         self.is_linear = True
 
-    def is_chapter(self):
+    def is_chapter(self):  # type: ignore
         return False
 
-    def set_content(self, cover_path):
+    def set_content(self, cover_path):  # type: ignore
         self.content = self._get_cover_html_content(cover_path)
 
-    def get_content(self):
+    def get_content(self):  # type: ignore
         return self.content
 
     def _get_cover_html_content(self, cover_path: Path) -> bytes:
@@ -126,7 +126,7 @@ class SWEpubWriter(epub.EpubWriter):
                         "I haven't implemented lists for Table of Contents"
                     )
                 elif isinstance(item, Link):
-                    p = etree.SubElement(
+                    a = etree.SubElement(
                         itm, "a", {"href": os.path.relpath(item.href, nav_dir_name)}
                     )
                     a.text = item.title
@@ -205,6 +205,9 @@ class SWEpubWriter(epub.EpubWriter):
                     if chap:
                         _href = chap.file_name
                         _title = chap.title
+                    else:
+                        _href = "MISSING"
+                        _title = "MISSING"
                 else:
                     _href = elem.get("href", "")
                     _title = elem.get("title", "")
@@ -219,8 +222,8 @@ class SWEpubWriter(epub.EpubWriter):
                             guide_type, guide_type
                         ),
                         "href": os.path.relpath(_href, nav_dir_name),
-                    },
-                )
+                    },  # type: ignore
+                )  # type: ignore
                 a_item.text = _title
 
         # PAGE-LIST
