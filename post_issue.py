@@ -9,6 +9,7 @@ import click
 import pytz
 import requests
 
+import console
 from issue_info import IssueInfo, get_issue_info
 from renderers import (
     render_author_bio_for_website,
@@ -37,31 +38,6 @@ import urllib3
 
 urllib3.disable_warnings()
 # TODO END REMOVE AFTER TESTING
-
-
-def heading(s: str) -> None:
-    """Print a heading to the console."""
-    click.secho(s, bold=True, fg="green")
-
-
-def subheading(s: str) -> None:
-    """Print a subheading to the console."""
-    click.secho(s, fg="green")
-
-
-def subsubheading(s: str) -> None:
-    """Print a sub-subheading to the console."""
-    click.secho(s, fg="blue")
-
-
-def warn(s: str) -> None:
-    """Print a warning to the console."""
-    click.secho(s, bold=True, fg="yellow")
-
-
-def info(s: str) -> None:
-    """Print info to the console."""
-    click.secho(s, dim=True)
 
 
 def response_jwt_error(r: requests.Response) -> str | None:
@@ -223,7 +199,7 @@ def setup_token() -> None:
                     type=str,
                 )
             elif code == "incorrect_password":
-                warn(f"Failed to authenticate user {host_info['username']}")
+                console.warn(f"Failed to authenticate user {host_info['username']}")
                 host_info["password"] = click.prompt(
                     f"Wrong password for user {host_info['username']}. Enter your WordPress password",
                     type=str,
@@ -250,7 +226,7 @@ def setup_rml_folders() -> None:
             folder["name"].lower(): folder["id"] for folder in r.json()["tree"]
         }
     elif r.status_code == 404:
-        warn("No Real Media Library folders found on the site")
+        console.warn("No Real Media Library folders found on the site")
         rml_folders = {}
     else:
         check_response(r, "getting information about Real Media Library folders")
@@ -333,7 +309,7 @@ def wp_request(
         if r.status_code == 403:
             code = response_jwt_error(r)
             if code == "jwt_auth_invalid_token":
-                warn("JWT token has expired. Getting a new one.")
+                console.warn("JWT token has expired. Getting a new one.")
                 setup_token()
                 h = get_wp_headers(headers)
                 continue
@@ -403,7 +379,7 @@ def get_existing_wp_object(
                 raise NotImplementedError(
                     f"Found {len(json)} existing {obj_name}s, but we're only set up to handle at most 9"
                 )
-            warn(
+            console.warn(
                 f"When looking for an existing {obj_name}, we found multiple ones "
                 f"with the parameters {params}:\n"
             )
@@ -430,7 +406,7 @@ def get_existing_wp_object(
                 obj_id = json[c - 1]["id"]
         else:
             obj_id = json[0]["id"]
-            info(
+            console.info(
                 f"{obj_name.capitalize()} has already been created (id {obj_id}); skipping."
             )
 
@@ -500,7 +476,7 @@ def move_image_to_rml_folder(id: int, folder: str) -> None:
     """
     cover_folder_id = rml_folders.get(folder, None)
     if cover_folder_id is None:
-        warn(
+        console.warn(
             f"No folder '{folder}' found in the site's Real Media Library. Available folders: {', '.join(rml_folders.keys)}"  # type: ignore
         )
     else:
@@ -538,7 +514,7 @@ def create_cover(info: IssueInfo) -> int | None:
             )
             move_image_to_rml_folder(cover_id, "covers")
         except FileNotFoundError:
-            warn("Cover image not found.")
+            console.warn("Cover image not found.")
 
     return cover_id
 
@@ -585,7 +561,7 @@ def create_issue(info: IssueInfo, post_date: datetime) -> int:
     :post_date: Date when the issue will be posted.
     :return: ID for the issue.
     """
-    subsubheading(f"Creating issue {info.issue_num}")
+    console.subsubheading(f"Creating issue {info.issue_num}")
     cover_id = create_cover(info)
     return create_issue_info(info, cover_id, post_date)
 
@@ -621,7 +597,7 @@ def create_author(name: str, bio_path: Path, avatar_path: Path) -> int:
     :param avatar_path: Path to the author's avatar as a jpeg.
     :return: Author ID.
     """
-    subsubheading(f"Creating author {name}")
+    console.subsubheading(f"Creating author {name}")
     avatar_id = create_author_avatar(name, avatar_path)
     author_id = get_existing_wp_object("author", "ppma_author", search=name)
     if not author_id:
@@ -657,7 +633,7 @@ def create_piece(
     :param issue_id: WordPress ID of the issue the piece belongs to.
     :return: WordPress ID for the piece.
     """
-    subsubheading(f"Creating piece object")
+    console.subsubheading(f"Creating piece object")
     slug = title_to_slug(title)
     piece_id = get_existing_wp_object("piece", "piece", slug=slug)
     if not piece_id:
@@ -724,7 +700,7 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
         release_month_date = release_month.date()
     release_date = issue_release_time(release_month_date)
 
-    heading(
+    console.heading(
         f"Setting up issue {info.issue_num} to release on {release_date.strftime('%c')}",
     )
 
@@ -747,7 +723,7 @@ def post_issue(content_path: Path | None, release_month: datetime | None) -> Non
         author_name,
         avatar_path,
     ) in info.piece_info():
-        subheading(f'\nCreating piece "{title}"')
+        console.subheading(f'\nCreating piece "{title}"')
         post_date = release_date + timedelta(days=post_day)
         author_id = create_author(author_name, bio_path, avatar_path)
         piece_id = create_piece(piece_path, post_date, title, author_id, issue_id)
