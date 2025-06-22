@@ -1,11 +1,13 @@
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Iterator
 
+import numpy as np
 import pandas as pd
 
-from issue_info import get_title_and_author
+from ebook_info import PieceType
+from issue_info import get_editors, get_title_and_author
 
 
 @dataclass
@@ -13,13 +15,47 @@ class BestOfYearInfo:
     """Information about the Best of Year collection."""
 
     cover_path: Path
-    editorial_path: Path
+    description: str
+    editors: list[str]
 
+    editorial_path: Path
     piece_paths: list[Path]
+    piece_types: list[PieceType]
     titles: list[str]
     bio_paths: list[Path]
     author_names: list[str]
     avatar_paths: list[Path]
+    copy_years: list[int]
+    intros: list[str]
+
+    def piece_info(
+        self,
+    ) -> Iterator[tuple[Path, PieceType, str, Path, str, Path, int, str]]:
+        """Get iterable over aggregated piece info.
+
+        Aggregated piece info:
+          - Path to the piece (Markdown)
+          - Type
+          - Title
+          - Path to the author's bio (Markdown)
+          - Author name
+          - Path to the author's avatar (jpeg)
+          - Copyright year
+          - Editor's intro
+
+        :yield: Iterator that produces tuples of (piece path, piece type, title, bio path, author name, avatar path, copyright year, intro).
+        """
+        return zip(
+            self.piece_paths,
+            self.piece_types,
+            self.titles,
+            self.bio_paths,
+            self.author_names,
+            self.avatar_paths,
+            self.copy_years,
+            self.intros,
+            strict=True,
+        )
 
 
 def _simplify_title(title: str) -> str:
@@ -41,8 +77,8 @@ def find_possible_piece_paths(root: Path) -> list[Path]:
     return [fp for fp in root.glob("*.md") if not fp.stem.endswith("-author")]
 
 
-PieceInfo = tuple[Path, str, str]
-"""The path, title, and author for a piece."""
+PieceInfo = tuple[Path, str, str, int]
+"""The path, title, author, and copyright year for a piece."""
 
 
 def read_pieces_info(
@@ -62,7 +98,7 @@ def read_pieces_info(
     for fp in possible_piece_paths:
         title, author, _ = get_title_and_author(fp)
         if title and author:
-            possible_pieces[_simplify_title(title)] = fp, title, author
+            possible_pieces[_simplify_title(title)] = fp, title, author, 0
 
     return possible_pieces
 
@@ -77,12 +113,12 @@ def read_pub_order_csv(order_path: Path) -> pd.DataFrame:
     errors = []
 
     pub_order_df = pd.read_csv(order_path)
-    for column in ["Title", "Type", "Info"]:
+    for column in ["Title", "Type", "Copy Year", "Intro"]:
         if column not in pub_order_df.columns:
             errors.append(column)
     if errors:
         raise RuntimeError(
-            f"CSV with pieces order is missing expected columns: {", ".join(errors)}"
+            f"CSV {order_path.name} with pieces' order is missing expected columns: {", ".join(errors)}"
         )
 
     return pub_order_df
@@ -109,15 +145,25 @@ def order_pieces(
 
     for ndx, title in enumerate(title_series):
         try:
-            pieces.append(pieces_info.pop(title))
+            p = pieces_info.pop(title)
         except KeyError:
             missing_titles.append(pub_order_df.iloc[ndx].Title)
+            continue
+        copy_year = pub_order_df.iloc[ndx].loc["Copy Year"]
+        if pd.isna(copy_year):
+            if PieceType(pub_order_df.iloc[ndx].Type) != PieceType.Reprint:
+                errors.append(
+                    f"Piece {title} is missing its copyright year in the CSV with the pieces' order"
+                )
+                continue
+            copy_year = 0
+        pieces.append(p[:3] + (int(copy_year),))
 
     if missing_titles:
         errors.append(f"Missing pieces: {", ".join(missing_titles)}")
     if pieces_info:
         unmatched_files = [
-            f"{fp.name} ({title})" for fp, title, _ in pieces_info.values()
+            f"{fp.name} ({title})" for fp, title, _, _ in pieces_info.values()
         ]
         warnings.append(
             f"Files whose titles didn't match: {", ".join(unmatched_files)}"
@@ -161,7 +207,8 @@ def get_best_of_year_info(
     """Get all the needed information about an issue.
 
     :param content_path: Path to where all the content files live.
-    :return: Tuple contaning best-of-year information, a list of any errors, and a list of any warnings..
+    :raises RuntimeError: If the option CSV is missing needed columns.
+    :return: Tuple contaning best-of-year information, a list of any errors, and a list of any warnings.
     """
     errors = []
     warnings = []
@@ -170,21 +217,29 @@ def get_best_of_year_info(
     pieces_info = read_pieces_info(possible_piece_paths)
     pub_order_df = read_pub_order_csv(content_path / "order.csv")
     pieces = order_pieces(pieces_info, pub_order_df, errors, warnings)
-    piece_paths, titles, author_names = zip(*pieces)
+    piece_paths, titles, author_names, copy_years = zip(*pieces)
     bio_paths, avi_paths = get_bio_and_avi_paths(piece_paths, errors)
+    intros = list(pub_order_df.Intro)
 
     cover_path = content_path / "cover.jpg"
+    description = (content_path / "description.html").read_text(encoding="utf-8")
+    editors = get_editors(content_path / "editors.txt")
     editorial_path = content_path / "editorial.md"
 
     return (
         BestOfYearInfo(
             cover_path,
+            description,
+            editors,
             editorial_path,
             list(piece_paths),
+            list(pub_order_df.Type.map(PieceType)),
             list(titles),
             bio_paths,
             list(author_names),
             avi_paths,
+            list(copy_years),
+            intros,
         ),
         errors,
         warnings,

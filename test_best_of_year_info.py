@@ -57,8 +57,8 @@ def test_read_pieces_info_reads_title_and_author():
     result = uut.read_pieces_info(paths)
 
     assert result == {
-        "title": (p1, "Title", "Mx. Author"),
-        "other": (p2, "Other", "J. Random"),
+        "title": (p1, "Title", "Mx. Author", 0),
+        "other": (p2, "Other", "J. Random", 0),
     }
 
 
@@ -76,6 +76,7 @@ def test_read_pieces_info_simplifies_title_for_dict_key():
             p,
             'Title\'s Other’s, a "Love" Story',
             "Mx. Author",
+            0,
         ),
     }
 
@@ -85,9 +86,9 @@ def test_read_pub_order_csv_reads_the_dataframe():
     b.write(
         "\n".join(
             [
-                "Title,Type,Info",
-                "Plums,Poem,We liked this!",
-                "Baby Shoes,Story,Overdone!",
+                "Title,Type,Copy Year,Intro",
+                "Plums,Poem,1870,We liked this!",
+                "Baby Shoes,Story,1871,Overdone!",
             ]
         ).encode()
     )
@@ -101,7 +102,8 @@ def test_read_pub_order_csv_reads_the_dataframe():
             {
                 "Title": ["Plums", "Baby Shoes"],
                 "Type": ["Poem", "Story"],
-                "Info": ["We liked this!", "Overdone!"],
+                "Copy Year": [1870, 1871],
+                "Intro": ["We liked this!", "Overdone!"],
             }
         ),
     )
@@ -109,8 +111,9 @@ def test_read_pub_order_csv_reads_the_dataframe():
 
 def test_read_pub_order_csv_raises_exception_on_missing_title_column():
     b = BytesIO()
-    b.write("\n".join(["Type,Info", "Poem,We liked this!"]).encode())
+    b.write("\n".join(["Type,Copy Year,Intro", "Poem,1870,We liked this!"]).encode())
     b.seek(0)
+    b.name = "Placeholder"  # Add on the `name` property from Path
 
     with pytest.raises(RuntimeError, match="missing expected columns: Title"):
         uut.read_pub_order_csv(b)  # type: ignore
@@ -120,8 +123,9 @@ def test_read_pub_order_csv_raises_exception_on_missing_title_column():
 
 def test_read_pub_order_csv_raises_exception_on_missing_type_column():
     b = BytesIO()
-    b.write("\n".join(["Title,Info", "Plums,We liked this!"]).encode())
+    b.write("\n".join(["Title,Copy Year,Intro", "Plums,1870,We liked this!"]).encode())
     b.seek(0)
+    b.name = "Placeholder"  # Add on the `name` property from Path
 
     with pytest.raises(RuntimeError, match="missing expected columns: Type"):
         uut.read_pub_order_csv(b)  # type: ignore
@@ -129,12 +133,25 @@ def test_read_pub_order_csv_raises_exception_on_missing_type_column():
     # Test passes if exception raised
 
 
+def test_read_pub_order_csv_raises_exception_on_missing_copy_year_column():
+    b = BytesIO()
+    b.write("\n".join(["Title,Type,Intro", "Plums,Poem,We liked this!"]).encode())
+    b.seek(0)
+    b.name = "Placeholder"  # Add on the `name` property from Path
+
+    with pytest.raises(RuntimeError, match="missing expected columns: Copy Year"):
+        uut.read_pub_order_csv(b)  # type: ignore
+
+    # Test passes if exception raised
+
+
 def test_read_pub_order_csv_raises_exception_on_missing_info_column():
     b = BytesIO()
-    b.write("\n".join(["Title,Type", "Plums,Story"]).encode())
+    b.write("\n".join(["Title,Copy Year,Type", "Plums,1870,Poem"]).encode())
     b.seek(0)
+    b.name = "Placeholder"  # Add on the `name` property from Path
 
-    with pytest.raises(RuntimeError, match="missing expected columns: Info"):
+    with pytest.raises(RuntimeError, match="missing expected columns: Intro"):
         uut.read_pub_order_csv(b)  # type: ignore
 
     # Test passes if exception raised
@@ -144,8 +161,11 @@ def test_read_pub_order_csv_raises_exception_on_multiple_missing_columns():
     b = BytesIO()
     b.write("\n".join(["Title", "Plums"]).encode())
     b.seek(0)
+    b.name = "Placeholder"  # Add on the `name` property from Path
 
-    with pytest.raises(RuntimeError, match="missing expected columns: Type, Info"):
+    with pytest.raises(
+        RuntimeError, match="missing expected columns: Type, Copy Year, Intro"
+    ):
         uut.read_pub_order_csv(b)  # type: ignore
 
     # Test passes if exception raised
@@ -153,15 +173,16 @@ def test_read_pub_order_csv_raises_exception_on_multiple_missing_columns():
 
 def test_order_pieces_returns_info_in_dataframe_order():
     pieces_info = {
-        "gideon the ninth": (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir"),
-        "plums": (Path("plums.md"), "Plums", "Mx. Author"),
-        "baby shoes": (Path("shoes.md"), "Baby Shoes", "Canon Lit"),
+        "gideon the ninth": (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir", 0),
+        "plums": (Path("plums.md"), "Plums", "Mx. Author", 0),
+        "baby shoes": (Path("shoes.md"), "Baby Shoes", "Canon Lit", 0),
     }
     pub_order_df = pd.DataFrame(
         {
             "Title": ["Plums", "Baby Shoes", "Gideon the Ninth"],
             "Type": ["Poem", "Story", "Novel"],
-            "Info": ["We liked this!", "Overdone!", "Yes please."],
+            "Copy Year": [1870, 1871, 20002],
+            "Intro": ["We liked this!", "Overdone!", "Yes please."],
         }
     )
     errors = []
@@ -170,22 +191,23 @@ def test_order_pieces_returns_info_in_dataframe_order():
     result = uut.order_pieces(pieces_info, pub_order_df, errors, warnings)
 
     assert result == [
-        (Path("plums.md"), "Plums", "Mx. Author"),
-        (Path("shoes.md"), "Baby Shoes", "Canon Lit"),
-        (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir"),
+        (Path("plums.md"), "Plums", "Mx. Author", 1870),
+        (Path("shoes.md"), "Baby Shoes", "Canon Lit", 1871),
+        (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir", 20002),
     ]
 
 
 def test_order_pieces_creates_error_message_for_missing_pieces():
     pieces_info = {
-        "gideon the ninth": (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir"),
-        "baby shoes": (Path("shoes.md"), "Baby Shoes", "Canon Lit"),
+        "gideon the ninth": (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir", 0),
+        "baby shoes": (Path("shoes.md"), "Baby Shoes", "Canon Lit", 0),
     }
     pub_order_df = pd.DataFrame(
         {
             "Title": ["Plums", "Baby Shoes", "Gideon the Ninth"],
             "Type": ["Poem", "Story", "Novel"],
-            "Info": ["We liked this!", "Overdone!", "Yes please."],
+            "Copy Year": [1870, 1871, 20002],
+            "Intro": ["We liked this!", "Overdone!", "Yes please."],
         }
     )
     errors = []
@@ -198,16 +220,17 @@ def test_order_pieces_creates_error_message_for_missing_pieces():
 
 def test_order_pieces_creates_warning_message_for_extra_pieces():
     pieces_info = {
-        "gideon the ninth": (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir"),
-        "plums": (Path("plums.md"), "Plums", "Mx. Author"),
-        "whoops extra": (Path("unexpected.md"), "Whoops Extra", "Snuck In"),
-        "baby shoes": (Path("shoes.md"), "Baby Shoes", "Canon Lit"),
+        "gideon the ninth": (Path("ninth.md"), "Gideon the Ninth", "Tamsyn Muir", 0),
+        "plums": (Path("plums.md"), "Plums", "Mx. Author", 0),
+        "whoops extra": (Path("unexpected.md"), "Whoops Extra", "Snuck In", 0),
+        "baby shoes": (Path("shoes.md"), "Baby Shoes", "Canon Lit", 0),
     }
     pub_order_df = pd.DataFrame(
         {
             "Title": ["Plums", "Baby Shoes", "Gideon the Ninth"],
             "Type": ["Poem", "Story", "Novel"],
-            "Info": ["We liked this!", "Overdone!", "Yes please."],
+            "Copy Year": [1870, 1871, 20002],
+            "Intro": ["We liked this!", "Overdone!", "Yes please."],
         }
     )
     errors = []

@@ -40,7 +40,7 @@ def add_metadata(
     editors: list[str],
     author_names: list[str],
     description: str,
-    issue_num: int | None,
+    issue_num: int | None = None,
 ) -> None:
     """Add metadata to an ebook.
 
@@ -49,7 +49,7 @@ def add_metadata(
     :param editors: List of editors.
     :param author_names: List of author names.
     :param description: Description of the ebook.
-    :param issue_num: Number of the issue (if the ebook is a single magazine issue).
+    :param issue_num: Optional number of the issue (if the ebook is a single magazine issue).
     """
 
     book.set_identifier(str(uuid.uuid4()))
@@ -146,17 +146,25 @@ def create_front_matter(
 
 
 def create_piece_content(
-    piece_path: Path, piece_type: PieceType, author_name: str, copyright_year: int
+    piece_path: Path,
+    piece_type: PieceType,
+    author_name: str,
+    copyright_year: int,
+    piece_preamble: str | None = None,
 ) -> str:
     """Create the HTML for a piece (original flash fiction, poem, or reprint flash fiction).
 
-    :param piece_path: Path to the piece.
+    :param piece_path: Path to the piece in Markdown format,
     :param piece_type: Type of piece.
     :param author_name: Author's name.
     :param copyright_year: Year in which the story was copyrighted. (Ignored for reprint flash.)
+    :param piece_preamble: Optional HTML preamble to the story to go inside the piece div and above the title.
     :return: The HTML content.
     """
     content = '<div class="piece">\n'
+
+    if piece_preamble:
+        content += piece_preamble
 
     if piece_type == PieceType.Poem:
         content += render_poem_for_ebook(piece_path)
