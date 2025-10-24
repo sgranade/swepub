@@ -128,6 +128,18 @@ class TestRenderPoemForEbook:
             + '<div class="poem tab2">Indent two</div>\n'
         )
 
+    def test_adds_rj_class_on_arrow(self):
+        text = "left justified\n=>right justified"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_poem_for_ebook(mock_path)
+
+        assert (
+            result
+            == '<div class="poem">left justified</div>\n'
+            + '<div class="poem rj">right justified</div>\n'
+        )
+
     def test_raises_error_on_six_tabs(self):
         text = "\t\t\t\t\t\tNope"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
@@ -220,6 +232,19 @@ class TestRenderPoemForWebsite:
             '<!-- wp:lazyblock/poem {"poem":"'
             "-\\u003e Indent one\\u003cbr\\u003e"
             "-\\u003e -\\u003e Indent two\\u003cbr\\u003e"
+            '"} /-->'
+        )
+
+    def test_adds_greater_than_on_arrow(self):
+        text = "left justified\n=>right justified"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_poem_for_website(mock_path)
+
+        assert result == (
+            '<!-- wp:lazyblock/poem {"poem":"'
+            "left justified\\u003cbr\\u003e"
+            "\\u003eright justified\\u003cbr\\u003e"
             '"} /-->'
         )
 

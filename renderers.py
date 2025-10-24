@@ -38,6 +38,9 @@ def _poem_line_to_ebook_html(line: str) -> str:
         # Non-breaking space needed to force ereaders to honor blank lines
         md_line = "&nbsp;"
     else:
+        if line.startswith("=>"):
+            classes += " rj"
+            line = line[2:]
         if line.startswith("\t"):
             cnt = len(re.match("\t+", line).group(0))  # type: ignore
             if cnt > 5:
@@ -60,8 +63,14 @@ def _poem_line_to_website_html(line: str) -> str:
     :param line: Line from the poem.
     :return: HTML-ized poem line
     """
+    right_justified = False
+    if line.startswith("=>"):
+        right_justified = True
+        line = line[2:]
     md_line = _website_md.renderInline(line)
     md_line = md_line.replace("\t", "-> ") + "<br>"
+    if right_justified:
+        md_line = ">" + md_line
     return md_line.translate(poem_trans)
 
 
