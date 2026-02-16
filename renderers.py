@@ -41,6 +41,9 @@ def _poem_line_to_ebook_html(line: str) -> str:
         if line.startswith("=>"):
             classes += " rj"
             line = line[2:]
+        elif line.startswith("<=>"):
+            classes += " cj"
+            line = line[3:]
         if line.startswith("\t"):
             cnt = len(re.match("\t+", line).group(0))  # type: ignore
             if cnt > 5:
@@ -64,13 +67,19 @@ def _poem_line_to_website_html(line: str) -> str:
     :return: HTML-ized poem line
     """
     right_justified = False
+    center_justified = False
     if line.startswith("=>"):
         right_justified = True
         line = line[2:]
+    elif line.startswith("<=>"):
+        center_justified = True
+        line = line[3:]
     md_line = _website_md.renderInline(line)
     md_line = md_line.replace("\t", "-> ") + "<br>"
     if right_justified:
         md_line = ">" + md_line
+    elif center_justified:
+        md_line = "<>" + md_line
     return md_line.translate(poem_trans)
 
 

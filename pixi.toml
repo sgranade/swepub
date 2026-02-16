@@ -1,4 +1,4 @@
-[project]
+[workspace]
 authors = ["Stephen Granade <stephen@granades.com>"]
 channels = ["conda-forge"]
 name = "swepub"

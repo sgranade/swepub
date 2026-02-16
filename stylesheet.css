@@ -14,6 +14,7 @@ div.poem {
 .tab4 { margin-left: 8em; }
 .tab5 { margin-left: 10em; }
 .rj { text-align: right; }
+.cj { text-align: center; }
 .frontmatter p {text-indent: 0em; margin-top: 1em;}
 .endmatter {margin-top: 1em; margin-bottom: 1em;}
 .endmatter p {font-size: 0.8em; margin: 0;}

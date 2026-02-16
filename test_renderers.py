@@ -128,6 +128,15 @@ class TestRenderPoemForEbook:
             + '<div class="poem tab2">Indent two</div>\n'
         )
 
+    def test_raises_error_on_six_tabs(self):
+        text = "\t\t\t\t\t\tNope"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        with pytest.raises(RuntimeError):
+            uut.render_poem_for_ebook(mock_path)
+
+        # Test passes if exception is raised
+
     def test_adds_rj_class_on_arrow(self):
         text = "left justified\n=>right justified"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
@@ -140,15 +149,17 @@ class TestRenderPoemForEbook:
             + '<div class="poem rj">right justified</div>\n'
         )
 
-    def test_raises_error_on_six_tabs(self):
-        text = "\t\t\t\t\t\tNope"
+    def test_adds_cj_class_on_spaceship(self):
+        text = "left justified\n<=>center justified"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        with pytest.raises(RuntimeError):
-            uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_ebook(mock_path)
 
-        # Test passes if exception is raised
-
+        assert (
+            result
+            == '<div class="poem">left justified</div>\n'
+            + '<div class="poem cj">center justified</div>\n'
+        )
 
 class TestRenderStoryForWebsite:
     def test_wraps_paragraphs_with_gutenberg_block_tags(self):
@@ -248,6 +259,20 @@ class TestRenderPoemForWebsite:
             '"} /-->'
         )
 
+    def test_adds_lesser_greater_than_on_spaceship(self):
+        text = "left justified\n<=>center justified"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_poem_for_ebook(mock_path)
+
+        result = uut.render_poem_for_website(mock_path)
+
+        assert result == (
+            '<!-- wp:lazyblock/poem {"poem":"'
+            "left justified\\u003cbr\\u003e"
+            "\\u003c\\u003ecenter justified\\u003cbr\\u003e"
+            '"} /-->'
+        )
 
 class TestRenderAuthorBioForWebsite:
     def test_bio_strips_para_tags(self):
