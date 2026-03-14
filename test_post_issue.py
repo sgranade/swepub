@@ -122,8 +122,9 @@ class TestIssueReleaseTime:
 
     def test_returns_the_first_monday_of_the_next_month_from_december(self):
         with patch.object(uut, "datetime") as mock_datetime:
-            mock_datetime.utcnow.return_value = datetime.datetime(
-                year=1999, month=12, day=30, hour=12, minute=13, second=14
+            mock_datetime.side_effect = lambda *args, **kwargs: datetime.datetime(*args, **kwargs)
+            mock_datetime.now.side_effect = lambda tz: datetime.datetime(
+                year=1999, month=12, day=30, hour=12, minute=13, second=14, tzinfo=tz
             )
 
             result = uut.issue_release_time()
@@ -134,8 +135,9 @@ class TestIssueReleaseTime:
         self,
     ):
         with patch.object(uut, "datetime") as mock_datetime:
-            mock_datetime.utcnow.return_value = datetime.datetime(
-                year=2024, month=3, day=20, hour=12, minute=13, second=14
+            mock_datetime.side_effect = lambda *args, **kwargs: datetime.datetime(*args, **kwargs)
+            mock_datetime.now.side_effect = lambda tz: datetime.datetime(
+                year=2024, month=3, day=20, hour=12, minute=13, second=14, tzinfo=tz
             )
 
             result = uut.issue_release_time()

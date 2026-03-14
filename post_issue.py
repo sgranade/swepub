@@ -1,12 +1,12 @@
 import tomllib
 from contextlib import suppress
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, UTC
 from enum import StrEnum, auto
 from pathlib import Path
 from urllib.parse import urljoin
+from zoneinfo import ZoneInfo
 
 import click
-import pytz
 import requests
 
 import console
@@ -325,24 +325,26 @@ def issue_release_time(year_month: date | None = None) -> datetime:
     Issues are released on the first Monday of a month at 11:00 am CDT.
 
     :param year_month: Year and month to release the issue. If None, it's automatically set to the month following the current one.
-    :return: The next month's first Monday.
+    :return: The next month's first Monday in GMT as a non-time-zone-aware datetime.
     """
-    # Start with the first day of the month
-    dt = datetime.utcnow().replace(day=1, hour=11, minute=0, second=0, microsecond=0)
+    tz = ZoneInfo("America/Chicago")
+    now = datetime.now(tz)
+
     if year_month is not None:
-        dt = dt.replace(year=year_month.year, month=year_month.month)
+        year = year_month.year
+        month = year_month.month
     else:
-        # Skip forward to the first day of next month
-        dt = (dt + timedelta(days=32)).replace(day=1)
+        year = now.year + (1 if now.month == 12 else 0)
+        month = 1 if now.month == 12 else now.month + 1
 
-    # Now move to the first Monday and adjust the timezone
-    tz_delta = pytz.timezone("America/Chicago").utcoffset(dt)
-    # If we're already on a Monday, don't skip forward
-    if dt.weekday() != 0:
-        dt += timedelta(days=7 - dt.weekday())
-    dt -= tz_delta
+    # Start w/the first day of the month
+    dt = datetime(year, month, 1, 11, 0, 0, 0, tz)
 
-    return dt
+    # Now move to the first Monday
+    days_to_monday = (7 - dt.weekday()) % 7
+    dt += timedelta(days=days_to_monday)
+
+    return dt.astimezone(UTC).replace(tzinfo=None)
 
 
 def get_existing_wp_object(
