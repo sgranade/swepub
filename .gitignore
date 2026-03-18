@@ -159,6 +159,4 @@ best_of_year/
 *.epub
 issue_config.toml
 
-# pixi environments
-.pixi
 *.egg-info
