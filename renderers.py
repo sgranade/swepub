@@ -12,8 +12,8 @@ _website_md = MarkdownIt("commonmark", {"typographer": True})
 _website_md.enable(["replacements"])
 
 
-def render_story_for_ebook(p: Path) -> str:
-    """Generate the ebook HTML for a story.
+def render_story_for_epub(p: Path) -> str:
+    """Generate the ePUB HTML for a story.
 
     :param path: Path to the story's markdown file.
     :return: HTML for the story.
@@ -27,8 +27,8 @@ def render_story_for_ebook(p: Path) -> str:
     return raw_html
 
 
-def _poem_line_to_ebook_html(line: str) -> str:
-    """Wrap a poem's line in HTML for an ebook.
+def _poem_line_to_epub_html(line: str) -> str:
+    """Wrap a poem's line in HTML for ePUB.
 
     :param line: Line from the poem.
     :return: HTML-ized poem line
@@ -123,13 +123,13 @@ def _render_poem(
     return header_html, body_html
 
 
-def render_poem_for_ebook(p: Path) -> str:
-    """Generate the ebook HTML for a poem.
+def render_poem_for_epub(p: Path) -> str:
+    """Generate the ePUB HTML for a poem.
 
     :param p: Path to the poem's markdown file.
     :return: HTML for the poem.
     """
-    return "".join(_render_poem(p, _ebook_md, _poem_line_to_ebook_html))
+    return "".join(_render_poem(p, _ebook_md, _poem_line_to_epub_html))
 
 
 def _remove_header_markdown(text: str) -> str:

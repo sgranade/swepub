@@ -5,12 +5,12 @@ import pytest
 import renderers as uut
 
 
-class TestRenderStoryForEbook:
+class TestRenderStoryForEPUB:
     def test_renders_basic_markdown(self):
         text = "Para 1 _with italics_.\n\nPara 2 **with bold**."
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_story_for_ebook(mock_path)
+        result = uut.render_story_for_epub(mock_path)
 
         assert (
             result
@@ -21,17 +21,17 @@ class TestRenderStoryForEbook:
         text = "Para 1.\n\n----\n\nPara 2."
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_story_for_ebook(mock_path)
+        result = uut.render_story_for_epub(mock_path)
 
         assert result == '<p>Para 1.</p>\n<p class="noindent">Para 2.</p>\n'
 
 
-class TestRenderPoemForEbook:
+class TestRenderPoemForEPUB:
     def test_converts_two_hashes_to_heading_2(self):
         text = "##Title _Italics_"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert result == "<h2>Title <em>Italics</em></h2>\n\n"
 
@@ -39,7 +39,7 @@ class TestRenderPoemForEbook:
         text = "######Title _Italics_"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert result == "<h6>Title <em>Italics</em></h6>\n\n"
 
@@ -48,7 +48,7 @@ class TestRenderPoemForEbook:
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
         with pytest.raises(RuntimeError):
-            uut.render_poem_for_ebook(mock_path)
+            uut.render_poem_for_epub(mock_path)
 
         # Test passes if exception is raised
 
@@ -56,7 +56,7 @@ class TestRenderPoemForEbook:
         text = "first line\nsecond line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -68,7 +68,7 @@ class TestRenderPoemForEbook:
         text = "first line\n\n---\n\nsecond line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -83,7 +83,7 @@ class TestRenderPoemForEbook:
         text = "_first_ line\n**second** line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -95,7 +95,7 @@ class TestRenderPoemForEbook:
         text = "start line\n\nend line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -108,7 +108,7 @@ class TestRenderPoemForEbook:
         text = "\n\n\nstart line\nend line\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -120,7 +120,7 @@ class TestRenderPoemForEbook:
         text = "\tIndent one\n\t\tIndent two"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -133,7 +133,7 @@ class TestRenderPoemForEbook:
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
         with pytest.raises(RuntimeError):
-            uut.render_poem_for_ebook(mock_path)
+            uut.render_poem_for_epub(mock_path)
 
         # Test passes if exception is raised
 
@@ -141,7 +141,7 @@ class TestRenderPoemForEbook:
         text = "left justified\n=>right justified"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -153,7 +153,7 @@ class TestRenderPoemForEbook:
         text = "left justified\n<=>center justified"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         assert (
             result
@@ -263,7 +263,7 @@ class TestRenderPoemForWebsite:
         text = "left justified\n<=>center justified"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
 
-        result = uut.render_poem_for_ebook(mock_path)
+        result = uut.render_poem_for_epub(mock_path)
 
         result = uut.render_poem_for_website(mock_path)
 

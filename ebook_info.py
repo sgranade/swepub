@@ -8,7 +8,7 @@ from ebooklib import epub
 from markdown_it import MarkdownIt
 
 from ebooklib_patch import SWEpubCoverHtml
-from renderers import render_poem_for_ebook, render_story_for_ebook
+from renderers import render_poem_for_epub, render_story_for_epub
 
 _md = MarkdownIt("commonmark", {"typographer": True})
 _md.enable(["replacements", "smartquotes"])
@@ -167,9 +167,9 @@ def create_piece_content(
         content += piece_preamble
 
     if piece_type == PieceType.Poem:
-        content += render_poem_for_ebook(piece_path)
+        content += render_poem_for_epub(piece_path)
     else:
-        content += render_story_for_ebook(piece_path)
+        content += render_story_for_epub(piece_path)
 
     if piece_type != PieceType.Reprint:
         # Add the end div and copyright statement
