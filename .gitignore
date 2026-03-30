@@ -157,6 +157,7 @@ content/
 images/
 best_of_year/
 *.epub
+*.pdf
 issue_config.toml
 
 *.egg-info

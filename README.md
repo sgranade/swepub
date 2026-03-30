@@ -1,6 +1,21 @@
-# Epub Generation for Small Wonders Magazine
+# Issue Generation for Small Wonders Magazine
 
-Being a collection of scripts to create an epub version of Small Wonders Magazine.
+Being a collection of scripts to create an issue of Small Wonders Magazine: post the pieces to the WordPress website, and create both the ePUB and PDF versions of the magazine.
+
+## Installing
+
+The scripts are written in Python maganed by [uv](https://github.com/astral-sh/uv). Install uv and you should be good to go, unless you're on Windows.
+
+> [!IMPORTANT]
+> The scripts use the [WeasyPrint](https://weasyprint.org/) PDF-writing package. If you're on Windows, there's a few more steps you need to take.
+
+On Windows, install [MSYS2](https://www.msys2.org/), open the MSYS2 window, and run the following command:
+
+```bash
+pacman -S mingw-w64-x86_64-pango mingw-w64-x86_64-gdk-pixbuf2 mingw-w64-x86_64-libffi mingw-w64-x86_64-zlib
+```
+
+Once that's done, add `C:\msys64\mingw64\bin` to your Windows PATH.
 
 ## Input Structure
 
@@ -86,12 +101,27 @@ First published in <Publication>
 [Editor 2]
 ```
 
-## Building the Epub File
+## Uploading the Pieces
 
-To build the epub file, in the repository, run the command
+To upload pieces to the WordPress site, create an `issue_config.toml` file in the script's directories. Its contents are:
 
-```bash
-python build_ebook.py
+```toml
+host = "<url to the WordPress site>"
+username = "<your WordPress username>"
+password = "<your application password>"
+use_2fa = true
 ```
 
-The epub file will be named `Small Wonders Magazine Issue <#>.epub`.
+You'll need to activate two-factor authentication on your WordPress account and then generate the [application password](https://wordpress.com/support/security/two-step-authentication/application-specific-passwords/) to add to the TOML file.
+
+Once that's set up, run `uv run python post_issue.py`.
+
+## Building the Ebooks
+
+To build the ePUB and PDF files, in the repository, run the command
+
+```bash
+uv run python build_ebook.py
+```
+
+The ebook files will be named `Small Wonders Magazine Issue <#>.epub` and `.pdf`.

@@ -100,7 +100,7 @@ def create_best_of_year(year: str, content_path: Path | None) -> None:
     root_path = Path(__file__).parent
     if not content_path:
         content_path = root_path / "best_of_year"
-    stylesheet_path = root_path / "stylesheet.css"
+    stylesheet_path = root_path / "epub_stylesheet.css"
     if re.match(r"\d+$", year):
         year = num2words(year)
     year = year.capitalize()

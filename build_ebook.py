@@ -16,6 +16,7 @@ from ebook_info import (
 )
 from ebooklib_patch import write_epub
 from issue_info import IssueInfo, get_issue_info
+from pdf_info import write_pdf
 
 
 def _avatar_path_to_author_img_src(path: Path) -> str:
@@ -94,7 +95,7 @@ def build_ebook():
     ]
     front_matter_paths = [content_path / fn for fn in front_matter]
 
-    stylesheet_path = root_path / "stylesheet.css"
+    stylesheet_path = root_path / "epub_stylesheet.css"
 
     info = get_issue_info(content_path)
 
@@ -137,6 +138,7 @@ def build_ebook():
     book.toc = list(full_contents)
 
     write_epub(f"Small Wonders Magazine Issue {info.issue_num}.epub", book)
+    write_pdf(info, Path(f"Small Wonders Magazine Issue {info.issue_num}.pdf"))
 
 
 if __name__ == "__main__":

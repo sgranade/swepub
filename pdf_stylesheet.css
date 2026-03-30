@@ -1,0 +1,136 @@
+@font-face {
+    font-family: "Oxygen";
+    src: url("fonts/Oxygen-Regular.ttf");
+    font-weight: 400;
+    font-style: normal;
+}
+@font-face {
+    font-family: "Oxygen";
+    src: url("fonts/Oxygen-Bold.ttf");
+    font-weight: 700;
+    font-style: normal;
+}
+/* No true italic for Oxygen — WeasyPrint synthesises italic by slanting the regular weight,
+   which matches how the website renders it in browsers. */
+@font-face {
+    font-family: "Quicksand";
+    src: url("fonts/Quicksand-Regular.ttf");
+    font-weight: 400;
+    font-style: normal;
+}
+@font-face {
+    font-family: "Quicksand";
+    src: url("fonts/Quicksand-Bold.ttf");
+    font-weight: 700;
+    font-style: normal;
+}
+
+@page {
+    size: letter;
+    margin: 1in 1in 1in 1in;
+    /* Add page number in footer */
+    @bottom-right {
+        content: counter(page);
+        font-family: "Oxygen", "Helvetica Neue", Arial, sans-serif;
+        font-size: 10pt;
+    }
+}
+
+/* Remove page number for cover and ToC pages */
+@page cover-page { @bottom-right { content: none; } }
+@page toc-page   { @bottom-right { content: none; } }
+
+section#cover { page: cover-page;  page-break-after: always; }
+section#toc   { page: toc-page;    page-break-after: always; }
+section       { page-break-before: always; }
+
+body {
+    font-family: "Oxygen", "Helvetica Neue", Arial, sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
+}
+h1 {
+    font-family: "Quicksand", "Trebuchet MS", "Gill Sans", sans-serif;
+    font-size: 16.8pt;
+    text-align: center;
+    margin-top: 48pt;
+    margin-bottom: 0;
+    text-indent: 0;
+}
+h2 {
+    font-family: "Quicksand", "Trebuchet MS", "Gill Sans", sans-serif;
+    font-size: 13.2pt;
+    text-align: center;
+    text-indent: 0;
+}
+
+.toc { margin-left: 24pt; margin-right: 24pt; }
+.toc p { margin-top: 0; margin-bottom: 0; }
+
+/* Page numbers via CSS target-counter — filled in at render time by WeasyPrint */
+.toc-entry a::after {
+    content: target-counter(attr(href), page);
+    float: right;
+}
+.toc-entry a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.piece p {
+    text-indent: 19.2pt;
+    margin: 0;
+}
+p.author {
+    font-size: 13.2pt;
+    text-align: center;
+    text-indent: 0;
+    margin-top: 0;
+    margin-bottom: 24pt;
+}
+p.noindent {
+    text-indent: 0;
+    margin-top: 12pt;
+}
+
+div.poem {
+    text-indent: -12pt;
+    padding-left: 12pt;
+}
+.tab1 { margin-left: 24pt; }
+.tab2 { margin-left: 48pt; }
+.tab3 { margin-left: 72pt; }
+.tab4 { margin-left: 96pt; }
+.tab5 { margin-left: 120pt; }
+.rj { text-align: right; }
+.cj { text-align: center; }
+
+.frontmatter p {
+    text-indent: 0;
+    margin-top: 12pt;
+}
+
+.endmatter {
+    margin-top: 12pt;
+    margin-bottom: 12pt;
+}
+.endmatter p {
+    font-size: 9.6pt;
+    margin: 0;
+}
+
+p.author-pic { text-align: center; }
+img.author { width: 140pt; height: 140pt; }
+
+div.editorIntro {
+    font-style: italic;
+    margin-top: 48pt;
+}
+div.editorIntro + h1 { margin-top: 24pt; }
+
+section#cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
