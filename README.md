@@ -101,6 +101,24 @@ First published in <Publication>
 [Editor 2]
 ```
 
+### Changes From Standard Markdown
+
+#### Stories
+
+Any `\` at the beginning of a paragraph will be stripped from the output. This allows us to create numbered paragraphs that aren't turned into HTML ordered lists:
+
+```markdown
+\1. This paragraph won't turn into an ordered list.
+
+\2. Neither will this.
+```
+
+#### Poems
+
+To indent a line, use tabs. Each tab indents the poetry line by 2 em units.
+
+To center justify a line, put `<=>` at its start. To right justify, put `=>` at its start.
+
 ## Uploading the Pieces
 
 To upload pieces to the WordPress site, create an `issue_config.toml` file in the script's directories. Its contents are:

@@ -25,6 +25,14 @@ class TestRenderStoryForEPUB:
 
         assert result == '<p>Para 1.</p>\n<p class="noindent">Para 2.</p>\n'
 
+    def test_strips_leading_backslash_so_numbered_paras_are_not_rendered_as_lists(self):
+        text = "\\1. Not a list item\n\n\\2. Also not a list item"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result = uut.render_story_for_epub(mock_path)
+
+        assert result == "<p>1. Not a list item</p>\n<p>2. Also not a list item</p>\n"
+
 
 class TestRenderPoemForEPUB:
     def test_converts_two_hashes_to_heading_2(self):
@@ -177,6 +185,21 @@ class TestRenderStoryForWebsite:
             "<!-- /wp:paragraph -->\n\n"
         )
 
+    def test_strips_leading_backslash_so_numbered_paras_are_not_rendered_as_lists(self):
+        text = "\\1. Not a list item\n\n\\2. Also not a list item"
+        mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
+
+        result, _, _ = uut.render_story_for_website(mock_path)
+
+        assert result == (
+            "<!-- wp:paragraph -->\n"
+            "<p>1. Not a list item</p>\n"
+            "<!-- /wp:paragraph -->\n\n"
+            "<!-- wp:paragraph -->\n"
+            "<p>2. Also not a list item</p>\n"
+            "<!-- /wp:paragraph -->\n\n"
+        )
+
     def test_turns_horizontal_rules_into_scene_break(self):
         text = "----\n"
         mock_path = Mock(read_text=Mock(side_effect=lambda *args, **kwargs: text))
@@ -218,7 +241,6 @@ class TestRenderStoryForWebsite:
 
         assert result == ""
         assert pub == "<em>Yep That's My Baby</em> magazine"
-
 
 class TestRenderPoemForWebsite:
     def test_translates_special_characters_to_unicode_but_only_in_the_poem_itself(self):

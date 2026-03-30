@@ -23,6 +23,9 @@ def render_story_for_epub(p: Path) -> str:
     # since lxml's HTML parser requires fragments have a single parent
     # (i.e. lxml wants to wrap the output of md.render() in a single div tag)
     raw_html = re.sub("<hr( /)?>\n*<p>", '<p class="noindent">', raw_html)
+    # Also get rid of any leading `\` in paragraphs, which we use to prevent
+    # Markdown from generating e.g. `<ol>` from numbered paragraphs
+    raw_html = re.sub(r"<p>\\", "<p>", raw_html)
 
     return raw_html
 
@@ -182,7 +185,12 @@ def render_story_for_website(p: Path) -> tuple[str, str | None, str | None]:
             ),
         )
 
-        return _website_md.render(text), orig_publication, copyright_year
+        # We also need to strip `\` from the beginning of paragraphs.
+        # We'll do that the regex way
+        rendered_text = _website_md.render(text)
+        rendered_text = re.sub(r"<p>\\", "<p>", rendered_text)
+
+        return rendered_text, orig_publication, copyright_year
 
 
 def render_poem_for_website(p: Path) -> str:
