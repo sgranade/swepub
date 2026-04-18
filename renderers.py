@@ -7,9 +7,9 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 
 _ebook_md = MarkdownIt("commonmark", {"typographer": True})
-_ebook_md.enable(["replacements", "smartquotes"])
+_ebook_md.enable(["replacements", "smartquotes", "strikethrough"])
 _website_md = MarkdownIt("commonmark", {"typographer": True})
-_website_md.enable(["replacements"])
+_website_md.enable(["replacements", "strikethrough"])
 
 
 def render_story_for_epub(p: Path) -> str:
