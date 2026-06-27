@@ -16,8 +16,8 @@ from ebooklib.epub import (
 from lxml import etree, html
 from PIL import Image
 
-if epub.VERSION != (0, 18, 1):
-    raise ImportWarning(f"Expected ebooklib version (0, 18, 1) but got {epub.VERSION}")
+if epub.VERSION != (0, 20, 0):
+    raise ImportWarning(f"Expected ebooklib version (0, 20, 0) but got {epub.VERSION}")
 
 
 def _append_html_as_elements(parent, html_text) -> None:
@@ -60,13 +60,13 @@ class SWEpubCoverHtml(epub.EpubHtml):
         # self.is_linear = False
         self.is_linear = True
 
-    def is_chapter(self):  # type: ignore
+    def is_chapter(self):
         return False
 
-    def set_content(self, cover_path):  # type: ignore
+    def set_content(self, cover_path):
         self.content = self._get_cover_html_content(cover_path)
 
-    def get_content(self):  # type: ignore
+    def get_content(self):
         return self.content
 
     def _get_cover_html_content(self, cover_path: Path) -> bytes:
@@ -233,9 +233,6 @@ class SWEpubWriter(epub.EpubWriter):
                     if chap:
                         _href = chap.file_name
                         _title = chap.title
-                    else:
-                        _href = "MISSING"
-                        _title = "MISSING"
                 else:
                     _href = elem.get("href", "")
                     _title = elem.get("title", "")
@@ -249,8 +246,8 @@ class SWEpubWriter(epub.EpubWriter):
                             guide_type, guide_type
                         ),
                         "href": os.path.relpath(_href, nav_dir_name),
-                    },  # type: ignore
-                )  # type: ignore
+                    },
+                )
                 a_item.text = _title
 
         # PAGE-LIST

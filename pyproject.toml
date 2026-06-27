@@ -4,21 +4,21 @@ version = "0.1.0"
 requires-python = ">=3.13.3,<3.14"
 authors = [{ name = "Stephen Granade", email = "stephen@granades.com" }]
 dependencies = [
-    "lxml>=5.3.2,<6",
-    "pillow>=11.1.0,<12",
+    "lxml>=6.1.1,<7",
+    "pillow>=12.2.0,<13",
     "click>=8.1.8,<9",
     "requests>=2.32.3,<3",
-    "markdown-it-py>=3.0.0,<4",
-    "pandas>=2.3.0,<3",
+    "markdown-it-py>=4.0.0,<5",
+    "pandas>=3.0.3,<4",
     "num2words>=0.5.12,<0.6",
-    "types-lxml>=2025.2.24,<2026",
-    "ebooklib>=0.18,<0.19",
-    "weasyprint>=68.1",
+    "types-lxml>=2026.2.16,<2027",
+    "ebooklib>=0.20,<0.21",
+    "weasyprint>=69.0,<70",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5,<9",
+    "pytest>=9.0.0,<10",
     "jupyterlab>=4.4.0,<5",
 ]
 

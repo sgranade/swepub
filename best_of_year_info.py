@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Iterator
 
-import numpy as np
 import pandas as pd
 
 from ebook_info import PieceType
@@ -118,7 +117,7 @@ def read_pub_order_csv(order_path: Path) -> pd.DataFrame:
             errors.append(column)
     if errors:
         raise RuntimeError(
-            f"CSV {order_path.name} with pieces' order is missing expected columns: {", ".join(errors)}"
+            f"CSV {order_path.name} with pieces' order is missing expected columns: {', '.join(errors)}"
         )
 
     return pub_order_df
@@ -160,13 +159,13 @@ def order_pieces(
         pieces.append(p[:3] + (int(copy_year),))
 
     if missing_titles:
-        errors.append(f"Missing pieces: {", ".join(missing_titles)}")
+        errors.append(f"Missing pieces: {', '.join(missing_titles)}")
     if pieces_info:
         unmatched_files = [
             f"{fp.name} ({title})" for fp, title, _, _ in pieces_info.values()
         ]
         warnings.append(
-            f"Files whose titles didn't match: {", ".join(unmatched_files)}"
+            f"Files whose titles didn't match: {', '.join(unmatched_files)}"
         )
 
     return pieces
@@ -192,10 +191,10 @@ def get_bio_and_avi_paths(
     missing_bios = [fp for fp in bio_paths if not fp.exists()]
     missing_avis = [fp for fp in avi_paths if not fp.exists()]
     if missing_bios:
-        errors.append(f"Missing bios: {", ".join([fp.name for fp in missing_bios])}")
+        errors.append(f"Missing bios: {', '.join([fp.name for fp in missing_bios])}")
     if missing_avis:
         errors.append(
-            f"Missing author avatars: {", ".join([fp.name for fp in missing_avis])}"
+            f"Missing author avatars: {', '.join([fp.name for fp in missing_avis])}"
         )
 
     return bio_paths, avi_paths
