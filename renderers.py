@@ -12,6 +12,15 @@ _website_md = MarkdownIt("commonmark", {"typographer": True})
 _website_md.enable(["replacements", "strikethrough"])
 
 
+def render_title_for_epub(title: str) -> str:
+    """Render a Markdown-formatted title for inclusion in the ePUB.
+
+    :param title: Title.
+    :return: HTML corresponding to the Title.
+    """
+    return _ebook_md.renderInline(title)
+
+
 def render_story_for_epub(p: Path) -> str:
     """Generate the ePUB HTML for a story.
 
@@ -20,7 +29,7 @@ def render_story_for_epub(p: Path) -> str:
     """
     raw_html = _ebook_md.render(p.read_text(encoding="utf-8"))
     # Change <hr><p> into <p class="noindent"> the funky regex way
-    # since lxml's HTML parser requires fragments have a single parent
+    # since lxml's HTML parser requires fragments to have a single parent
     # (i.e. lxml wants to wrap the output of md.render() in a single div tag)
     raw_html = re.sub("<hr( /)?>\n*<p>", '<p class="noindent">', raw_html)
     # Also get rid of any leading `\` in paragraphs, which we use to prevent

@@ -8,7 +8,7 @@ from ebooklib import epub
 from markdown_it import MarkdownIt
 
 from ebooklib_patch import SWEpubCoverHtml
-from renderers import render_poem_for_epub, render_story_for_epub
+from renderers import render_poem_for_epub, render_story_for_epub, render_title_for_epub
 
 _md = MarkdownIt("commonmark", {"typographer": True})
 _md.enable(["replacements", "smartquotes"])
@@ -135,7 +135,9 @@ def create_front_matter(
     """
     for path, title in zip(paths, titles):
         ch = epub.EpubHtml(
-            title=title, file_name=f"body{len(ebook_chs):02}.xhtml", lang="en"
+            title=render_title_for_epub(title),
+            file_name=f"body{len(ebook_chs):02}.xhtml",
+            lang="en",
         )
         ch.set_content(
             '<div class="frontmatter">'
@@ -209,12 +211,14 @@ def add_piece(
     """
     content = (
         piece_content
-        + f'<p class="author-pic"><img class="author" '
+        + '<p class="author-pic"><img class="author" '
         + f'src="{author_avi_ebook_path}" alt="{author_name}"/></p>\n\n'
         + _md.render(bio_path.read_text(encoding="utf-8"))
     )
     ch = epub.EpubHtml(
-        title=title, file_name=f"body{len(ebook_chs):02}.xhtml", lang="en"
+        title=render_title_for_epub(title),
+        file_name=f"body{len(ebook_chs):02}.xhtml",
+        lang="en",
     )
     ch.set_content(content)
     ebook_chs.append(ch)

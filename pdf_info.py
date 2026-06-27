@@ -6,7 +6,7 @@ from markdown_it import MarkdownIt
 
 from ebook_info import PieceType
 from issue_info import IssueInfo
-from renderers import render_poem_for_epub, render_story_for_epub
+from renderers import render_poem_for_epub, render_story_for_epub, render_title_for_epub
 
 _md = MarkdownIt("commonmark", {"typographer": True})
 _md.enable(["replacements", "smartquotes"])
@@ -43,7 +43,7 @@ def create_toc_entry(n: int, title: str, author: str) -> str:
     :param title: Piece title.
     :param author: Author name.
     """
-    return f'<p class="toc-entry"><a href="#piece-{n}">{title} \u2014 {author}</a></p>\n'
+    return f'<p class="toc-entry"><a href="#piece-{n}">{render_title_for_epub(title)} \u2014 {author}</a></p>\n'
 
 
 def create_toc_section(titles: list[str], author_names: list[str]) -> str:
@@ -70,9 +70,7 @@ def create_front_matter_section(n: int, path: Path) -> str:
     html = _md.render(path.read_text(encoding="utf-8"))
     return (
         f'<section id="front-{n}">\n'
-        '<div class="frontmatter">\n'
-        + html
-        + "</div>\n</section>\n"
+        '<div class="frontmatter">\n' + html + "</div>\n</section>\n"
     )
 
 
@@ -129,8 +127,7 @@ def create_piece_section(
     content += (
         f'<p class="author-pic">'
         f'<img class="author" src="{avi_src}" alt="{author_name}"/>'
-        f"</p>\n\n"
-        + bio_html
+        f"</p>\n\n" + bio_html
     )
 
     return f'<section id="piece-{n}">\n' + content + "</section>\n"
@@ -156,7 +153,7 @@ def write_pdf(info: IssueInfo, output_path: Path) -> None:
     for n, fm_file in enumerate(_FRONT_MATTER_FILES):
         parts.append(create_front_matter_section(n + 1, content_path / fm_file))
 
-    for n, (piece_path, _, title, bio_path, author, avatar_path) in enumerate(
+    for n, (piece_path, _, _, bio_path, author, avatar_path) in enumerate(
         info.piece_info()
     ):
         piece_type = (

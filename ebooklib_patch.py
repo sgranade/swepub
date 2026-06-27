@@ -13,11 +13,37 @@ from ebooklib.epub import (
     get_pages_for_items,
     parse_string,
 )
-from lxml import etree
+from lxml import etree, html
 from PIL import Image
 
 if epub.VERSION != (0, 18, 1):
     raise ImportWarning(f"Expected ebooklib version (0, 18, 1) but got {epub.VERSION}")
+
+
+def _append_html_as_elements(parent, html_text) -> None:
+    """Appends HTML as rendered elements to the parent element.
+
+    :param parent: Parent element.
+    :param html_text: HTML to append to the element.
+    """
+    # Wrap so fragment_fromstring() always has a single root.
+    wrapper = html.fragment_fromstring(
+        f"<span>{html_text}</span>",
+        create_parent=False,
+    )
+
+    parent.text = wrapper.text
+
+    for child in wrapper:
+        parent.append(child)
+
+
+def _strip_html_markup(html_text: str) -> str:
+    """Strip the HTML markup from a string."""
+    return html.fragment_fromstring(
+        f"<span>{html_text}</span>",
+        create_parent=False,
+    ).text_content()
 
 
 # Adapted from the ebooklib class so I could tweak it -- the existing class lower-cases all
@@ -88,7 +114,7 @@ class SWEpubWriter(epub.EpubWriter):
 
         head = etree.SubElement(root, "head")
         title = etree.SubElement(head, "title")
-        title.text = item.title or self.book.title
+        _append_html_as_elements(title, item.title or self.book.title)
 
         # for now this just handles css files and ignores others
         for _link in item.links:
@@ -118,6 +144,8 @@ class SWEpubWriter(epub.EpubWriter):
 
         def _create_toc_section(itm, items):
             """SRG Creates a table of contents with links in paragraphs instead of ordered lists"""
+            # Note that titles are HTML as rendered from Markdown, and so shouldn't
+            # be escaped. To prevent that, we'll append titles as lxml-rendered elements
             div = etree.SubElement(itm, "div", {"class": "toc"})
             for item in items:
                 p = etree.SubElement(div, "p")
@@ -129,12 +157,12 @@ class SWEpubWriter(epub.EpubWriter):
                     a = etree.SubElement(
                         itm, "a", {"href": os.path.relpath(item.href, nav_dir_name)}
                     )
-                    a.text = item.title
+                    _append_html_as_elements(a, item.title)
                 elif isinstance(item, EpubHtml):
                     a = etree.SubElement(
                         p, "a", {"href": os.path.relpath(item.file_name, nav_dir_name)}
                     )
-                    a.text = item.title
+                    _append_html_as_elements(a, item.title)
 
         def _create_section(itm, items):
             """SRG Left in, but not used in this implementation"""
@@ -162,7 +190,7 @@ class SWEpubWriter(epub.EpubWriter):
                         )
                     else:
                         a = etree.SubElement(li, "span")
-                    a.text = item[0].title
+                    _append_html_as_elements(a, item[0].title)
 
                     _create_section(li, item[1])
 
@@ -171,13 +199,13 @@ class SWEpubWriter(epub.EpubWriter):
                     a = etree.SubElement(
                         li, "a", {"href": os.path.relpath(item.href, nav_dir_name)}
                     )
-                    a.text = item.title
+                    _append_html_as_elements(a, item.title)
                 elif isinstance(item, EpubHtml):
                     li = etree.SubElement(ol, "li")
                     a = etree.SubElement(
                         li, "a", {"href": os.path.relpath(item.file_name, nav_dir_name)}
                     )
-                    a.text = item.title
+                    _append_html_as_elements(a, item.title)
 
         _create_toc_section(nav, self.book.toc)  # SRG to get rid of the ordered list
 
@@ -217,8 +245,7 @@ class SWEpubWriter(epub.EpubWriter):
                     li_item,
                     "a",
                     {
-                        "{%s}type"
-                        % NAMESPACES["EPUB"]: guide_to_landscape_map.get(
+                        "{%s}type" % NAMESPACES["EPUB"]: guide_to_landscape_map.get(
                             guide_type, guide_type
                         ),
                         "href": os.path.relpath(_href, nav_dir_name),
@@ -268,6 +295,123 @@ class SWEpubWriter(epub.EpubWriter):
 
         tree_str = etree.tostring(
             nav_xml, pretty_print=True, encoding="utf-8", xml_declaration=True
+        )
+
+        return tree_str
+
+    def _get_ncx(self):
+
+        # we should be able to setup language for NCX as also
+        ncx = parse_string(self.book.get_template("ncx"))
+        root = ncx.getroot()
+
+        head = etree.SubElement(root, "head")
+
+        # get this id
+        uid = etree.SubElement(
+            head, "meta", {"content": self.book.uid, "name": "dtb:uid"}
+        )
+        uid = etree.SubElement(head, "meta", {"content": "0", "name": "dtb:depth"})
+        uid = etree.SubElement(
+            head, "meta", {"content": "0", "name": "dtb:totalPageCount"}
+        )
+        uid = etree.SubElement(
+            head, "meta", {"content": "0", "name": "dtb:maxPageNumber"}
+        )
+
+        doc_title = etree.SubElement(root, "docTitle")
+        title = etree.SubElement(doc_title, "text")
+        title.text = self.book.title
+
+        #        doc_author = etree.SubElement(root, 'docAuthor')
+        #        author = etree.SubElement(doc_author, 'text')
+        #        author.text = 'Name of the person'
+
+        # For now just make a very simple navMap
+        nav_map = etree.SubElement(root, "navMap")
+
+        def _add_play_order(nav_point):
+            nav_point.set("playOrder", str(self._play_order["start_from"]))
+            self._play_order["start_from"] += 1
+
+        def _create_section(itm, items, uid):
+            for item in items:
+                if isinstance(item, tuple) or isinstance(item, list):
+                    section, subsection = item[0], item[1]
+
+                    np = etree.SubElement(
+                        itm,
+                        "navPoint",
+                        {
+                            "id": section.get_id()
+                            if isinstance(section, EpubHtml)
+                            else "sep_%d" % uid
+                        },
+                    )
+
+                    if self._play_order["enabled"]:
+                        _add_play_order(np)
+
+                    nl = etree.SubElement(np, "navLabel")
+                    nt = etree.SubElement(nl, "text")
+                    # SRG: Strip out any HTML in the title
+                    nt.text = _strip_html_markup(section.title)
+
+                    # CAN NOT HAVE EMPTY SRC HERE
+                    href = ""
+                    if isinstance(section, EpubHtml):
+                        href = section.file_name
+                    elif isinstance(section, Section) and section.href != "":
+                        href = section.href
+                    elif isinstance(section, Link):
+                        href = section.href
+
+                    nc = etree.SubElement(np, "content", {"src": href})
+
+                    uid = _create_section(np, subsection, uid + 1)
+                elif isinstance(item, Link):
+                    _parent = itm
+                    _content = _parent.find("content")
+
+                    if _content is not None:
+                        if _content.get("src") == "":
+                            _content.set("src", item.href)
+
+                    np = etree.SubElement(itm, "navPoint", {"id": item.uid})
+
+                    if self._play_order["enabled"]:
+                        _add_play_order(np)
+
+                    nl = etree.SubElement(np, "navLabel")
+                    nt = etree.SubElement(nl, "text")
+                    nt.text = _strip_html_markup(item.title)
+
+                    nc = etree.SubElement(np, "content", {"src": item.href})
+                elif isinstance(item, EpubHtml):
+                    _parent = itm
+                    _content = _parent.find("content")
+
+                    if _content is not None:
+                        if _content.get("src") == "":
+                            _content.set("src", item.file_name)
+
+                    np = etree.SubElement(itm, "navPoint", {"id": item.get_id()})
+
+                    if self._play_order["enabled"]:
+                        _add_play_order(np)
+
+                    nl = etree.SubElement(np, "navLabel")
+                    nt = etree.SubElement(nl, "text")
+                    nt.text = _strip_html_markup(item.title)
+
+                    nc = etree.SubElement(np, "content", {"src": item.file_name})
+
+            return uid
+
+        _create_section(nav_map, self.book.toc, 0)
+
+        tree_str = etree.tostring(
+            root, pretty_print=True, encoding="utf-8", xml_declaration=True
         )
 
         return tree_str
